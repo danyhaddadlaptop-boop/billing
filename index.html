@@ -50,16 +50,28 @@
         .metric-card.initial { border-top-color: var(--blue); }
         .metric-card.balance { border-top-color: var(--gold); }
         .metric-card.fees { border-top-color: var(--purple); }
+        .metric-card.player-fees { border-top-color: var(--teal); }
+        .metric-display { font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 700; margin-top: 10px; }
+
+        /* New Month Button */
+        .btn-new-month { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 8px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: 0.2s; }
+        .btn-new-month:hover { background: var(--gold); color: var(--bg-main); }
+
+        /* Edit button */
+        .btn-edit { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; }
+        .btn-edit:hover { color: var(--gold); }
+
+        /* Edit Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: var(--bg-card); border: 1px solid var(--gold); border-radius: 12px; padding: 30px; width: 420px; max-width: 95vw; }
+        .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--gold); margin-bottom: 20px; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-modal-save { flex: 1; padding: 10px; background: var(--gold); border: none; border-radius: 6px; color: var(--bg-main); font-weight: 700; cursor: pointer; }
+        .btn-modal-cancel { flex: 1; padding: 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); cursor: pointer; }
+        .btn-modal-cancel:hover { border-color: var(--red); color: var(--red); }
         .metric-label { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
         
-        /* Editable Metric Inputs Style */
-        .metric-input-wrapper { display: flex; align-items: center; margin-top: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px dashed var(--border); padding: 2px 8px; }
-        .metric-input-wrapper:focus-within { border-color: var(--gold); border-style: solid; }
-        .metric-currency-symbol { font-family: 'JetBrains Mono', monospace; font-size: 1.6rem; font-weight: 700; color: var(--text-muted); padding-right: 2px; }
-        .metric-editable-input { background: transparent; border: none; font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 700; color: inherit; width: 100%; outline: none; }
-        
-        .btn-clear-override { position: absolute; top: 15px; right: 15px; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.4); color: var(--red); padding: 2px 6px; font-size: 0.7rem; border-radius: 4px; cursor: pointer; }
-        .btn-clear-override:hover { background: var(--red); color: white; }
+
 
         /* Form and Workspaces */
         .workspace { display: grid; grid-template-columns: 350px 1fr; gap: 30px; }
@@ -115,6 +127,34 @@
         .logs-panel { margin-top: 30px; background: #0E1422; border: 1px solid var(--border); padding: 20px; border-radius: 8px; }
         .logs-title { font-size: 1rem; color: var(--text-muted); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
         .log-entry { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #A3AED0; padding: 6px 0; border-bottom: 1px dashed rgba(36,50,79,0.5); }
+
+        /* Archive Panel */
+        .archive-panel { margin-top: 30px; background: #0E1422; border: 1px solid var(--border); padding: 20px; border-radius: 8px; }
+        .archive-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .archive-controls { display: flex; gap: 10px; align-items: center; }
+        .archive-controls select { background: var(--bg-card); border: 1px solid var(--gold); color: var(--gold); padding: 6px 12px; border-radius: 6px; font-size: 0.9rem; cursor: pointer; outline: none; }
+        .archive-summary-val { font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 700; margin-top: 8px; }
+        .archive-empty { color: var(--text-muted); font-size: 0.9rem; padding: 20px 0; text-align: center; }
+
+        /* Accounts Section */
+        .accounts-panel { margin-top: 30px; background: var(--bg-card); border: 1px solid var(--border); padding: 25px; border-radius: 8px; }
+        .accounts-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .accounts-header h2 { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--gold); }
+        .accounts-grid { display: grid; grid-template-columns: 300px 1fr; gap: 24px; }
+        .account-form { display: flex; flex-direction: column; gap: 12px; }
+        .account-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; }
+        .account-card { background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; transition: border-color 0.2s; }
+        .account-card:hover { border-color: var(--gold); }
+        .account-name { font-weight: 700; font-size: 1rem; color: var(--text-main); }
+        .account-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+        .account-players { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+        .account-player-tag { background: rgba(212,175,55,0.12); color: var(--gold); border: 1px solid rgba(212,175,55,0.25); border-radius: 4px; padding: 2px 7px; font-size: 0.75rem; font-weight: 600; }
+        .account-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .btn-account-del { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; }
+        .btn-account-del:hover { color: var(--red); }
+        .btn-sm { padding: 8px 14px; background: var(--gold); border: none; border-radius: 6px; color: var(--bg-main); font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+        .btn-sm:hover { background: var(--gold-hover); }
+        .accounts-empty { color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 30px; }
     </style>
 </head>
 <body>
@@ -137,10 +177,11 @@
     <div id="appScreen" class="hidden">
         <header>
             <div>
-                <h1>System Registry</h1>
+                <h1>Billing BetArabia</h1>
                 <p style="color: var(--text-muted); font-size: 0.9rem;">Partner Shared Betting Platform</p>
             </div>
             <div class="user-info">
+                <button class="btn-new-month" onclick="openNewMonth()">📅 New Month</button>
                 <span id="userDisplay" style="font-weight: 600;">Connecting...</span>
                 <button class="btn-logout" onclick="logout()">Logout</button>
             </div>
@@ -148,35 +189,111 @@
 
         <div class="metrics-grid">
             <div class="metric-card initial" id="cardLossGain">
-                <div class="metric-label">Loss/Gain Agent</div>
-                <div id="containerOverrideLossGain"></div>
-                <div class="metric-input-wrapper">
-                    <span class="metric-currency-symbol" id="symbolLossGain">$</span>
-                    <input type="text" id="metricLossGain" class="metric-editable-input" onchange="saveManualOverride('lossGain', this.value)" title="Press Enter to update value manually">
-                </div>
+                <div class="metric-label">Loss / Gain Agent</div>
+                <div class="metric-display" id="metricLossGain">$0.00</div>
             </div>
             <div class="metric-card balance" id="cardBalance">
                 <div class="metric-label">Current Agent Balance</div>
-                <div id="containerOverrideBalance"></div>
-                <div class="metric-input-wrapper">
-                    <span class="metric-currency-symbol" id="symbolBalance">$</span>
-                    <input type="text" id="metricBalance" class="metric-editable-input" onchange="saveManualOverride('agentBalance', this.value)" title="Press Enter to update value manually">
-                </div>
+                <div class="metric-display" id="metricBalance">$0.00</div>
             </div>
             <div class="metric-card fees" id="cardFees">
                 <div class="metric-label">Accumulated Fees Owed</div>
-                <div id="containerOverrideFees"></div>
-                <div class="metric-input-wrapper" style="color: var(--purple);">
-                    <span class="metric-currency-symbol">$</span>
-                    <input type="text" id="metricFees" class="metric-editable-input" onchange="saveManualOverride('feesOwed', this.value)" title="Press Enter to update value manually">
-                </div>
+                <div class="metric-display" id="metricFees" style="color:var(--purple);">$0.00</div>
+            </div>
+            <div class="metric-card player-fees" id="cardPlayerFees">
+                <div class="metric-label">Player Fees Only</div>
+                <div class="metric-display" id="metricPlayerFees" style="color:var(--teal);">$0.00</div>
             </div>
             <div class="metric-card" id="cardVolume">
                 <div class="metric-label">Total Volume (Net)</div>
-                <div id="containerOverrideVolume"></div>
-                <div class="metric-input-wrapper">
-                    <span class="metric-currency-symbol">$</span>
-                    <input type="text" id="metricVolume" class="metric-editable-input" onchange="saveManualOverride('totalVolume', this.value)" title="Press Enter to update value manually">
+                <div class="metric-display" id="metricVolume">$0.00</div>
+            </div>
+        </div>
+
+        <!-- New Month Modal -->
+        <div class="modal-overlay hidden" id="newMonthModal">
+            <div class="modal-box">
+                <div class="modal-title">📅 Start New Month</div>
+                <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:20px;">All current transactions will be archived. Enter the opening balances for the new month.</p>
+                <div class="input-group">
+                    <label>Opening Loss / Gain ($)</label>
+                    <input type="number" id="nm-lossGain" step="0.01" placeholder="0.00" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Opening Agent Balance ($)</label>
+                    <input type="number" id="nm-balance" step="0.01" placeholder="0.00" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Opening Fees Owed ($)</label>
+                    <input type="number" id="nm-fees" step="0.01" placeholder="0.00" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Opening Player Fees ($)</label>
+                    <input type="number" id="nm-playerFees" step="0.01" placeholder="0.00" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Opening Total Volume ($)</label>
+                    <input type="number" id="nm-volume" step="0.01" placeholder="0.00" value="0">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-modal-cancel" onclick="closeNewMonth()">Cancel</button>
+                    <button class="btn-modal-save" onclick="confirmNewMonth()">✓ Confirm & Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Transaction Modal -->
+        <div class="modal-overlay hidden" id="editModal">
+            <div class="modal-box">
+                <div class="modal-title">✏️ Edit Transaction</div>
+                <input type="hidden" id="editKey">
+                <div class="input-group">
+                    <label>Name / Note</label>
+                    <input type="text" id="editName">
+                </div>
+                <div class="input-group">
+                    <label>Transaction Type</label>
+                    <select id="editType">
+                        <option value="Deposit">Deposit</option>
+                        <option value="Withdraw">Withdraw</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Game Type</label>
+                    <select id="editGame">
+                        <option value="Casino">🎰 Casino</option>
+                        <option value="Poker">🃏 Poker</option>
+                        <option value="Football">⚽ Football Betting</option>
+                        <option value="—">— (Agent)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Payment Method</label>
+                    <select id="editMethod">
+                        <option value="Whish">Whish</option>
+                        <option value="OMT">OMT</option>
+                        <option value="Mymonty">MyMonty</option>
+                        <option value="Cash">Cash</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Base Amount ($)</label>
+                    <input type="number" id="editAmount" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label>Fee %</label>
+                    <input type="number" id="editFee" step="0.1" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Status</label>
+                    <select id="editStatus">
+                        <option value="Not Paid">❌ Not Paid</option>
+                        <option value="Paid">✅ Paid</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-modal-cancel" onclick="closeEdit()">Cancel</button>
+                    <button class="btn-modal-save" onclick="saveEdit()">💾 Save Changes</button>
                 </div>
             </div>
         </div>
@@ -210,20 +327,32 @@
                     </div>
                     <div class="input-group">
                         <label>Payment Method</label>
-                        <select id="paymentMethod" required>
+                        <select id="paymentMethod" required onchange="updateFeeVisibility()">
                             <option value="Whish">Whish</option>
                             <option value="OMT">OMT</option>
                             <option value="Mymonty">MyMonty</option>
                             <option value="Cash">Cash</option>
                         </select>
                     </div>
+                    <div class="input-group" id="accountGroup">
+                        <label>Account (optional)</label>
+                        <select id="playerAccount">
+                            <option value="">— No account assigned —</option>
+                        </select>
+                    </div>
                     <div class="input-group">
                         <label>Base Amount ($)</label>
                         <input type="number" id="amount" step="0.01" required placeholder="0.00">
                     </div>
-                    <div class="input-group">
-                        <label>Fee %</label>
-                        <input type="number" id="feePercent" step="0.1" value="0" placeholder="0">
+                    <div class="input-group" id="feeGroup">
+                        <label style="display:flex;align-items:center;justify-content:space-between;">
+                            <span>Fee</span>
+                            <span id="feeToggleWrap" style="display:flex;align-items:center;gap:4px;font-size:0.78rem;">
+                                <button type="button" id="feeBtnPct" onclick="setFeeMode('pct')" style="padding:2px 7px;border-radius:4px;border:1px solid var(--gold);background:var(--gold);color:var(--bg-main);font-weight:700;cursor:pointer;font-size:0.78rem;">%</button>
+                                <button type="button" id="feeBtnAmt" onclick="setFeeMode('amt')" style="padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-weight:700;cursor:pointer;font-size:0.78rem;">$</button>
+                            </span>
+                        </label>
+                        <input type="number" id="feePercent" step="0.01" value="0" placeholder="0">
                     </div>
                     <div class="input-group">
                         <label>Initial Settlement Status</label>
@@ -257,8 +386,9 @@
                             <th>Total Net ($)</th>
                             <th>Agent Box</th>
                             <th>Status</th>
+                            <th>Account</th>
                             <th>By</th>
-                            <th></th>
+                            <th colspan="2"></th>
                         </tr>
                     </thead>
                     <tbody id="txTableBody">
@@ -267,9 +397,68 @@
             </div>
         </div>
 
+
+        <!-- ACCOUNTS SECTION -->
+        <div class="accounts-panel">
+            <div class="accounts-header">
+                <h2>🏦 Accounts</h2>
+                <span style="color:var(--text-muted);font-size:0.85rem;">Assign players to betting accounts</span>
+            </div>
+            <div class="accounts-grid">
+                <div class="account-form">
+                    <div class="input-group" style="margin:0">
+                        <label>Account Name</label>
+                        <input type="text" id="accName" placeholder="e.g. 1xBet Account A">
+                    </div>
+                    <div class="input-group" style="margin:0">
+                        <label>Platform / Site</label>
+                        <input type="text" id="accPlatform" placeholder="e.g. 1xBet, Betway, Stake">
+                    </div>
+                    <div class="input-group" style="margin:0">
+                        <label>Notes (optional)</label>
+                        <input type="text" id="accNotes" placeholder="Any relevant info">
+                    </div>
+                    <button class="btn-sm" onclick="addAccount()">+ Add Account</button>
+                </div>
+                <div id="accountList" class="account-list">
+                    <div class="accounts-empty">No accounts yet. Add one to get started.</div>
+                </div>
+            </div>
+        </div>
+
         <div class="logs-panel">
             <div class="logs-title">System Audit Log Trail</div>
             <div id="logTrail"></div>
+        </div>
+        <!-- ARCHIVE VIEWER -->
+        <div class="archive-panel">
+            <div class="archive-header">
+                <div class="logs-title" style="margin:0">&#128230; Archive &mdash; Past Months</div>
+                <div class="archive-controls">
+                    <select id="archiveMonthSelect" onchange="loadArchiveMonth(this.value)">
+                        <option value="">Select a month</option>
+                    </select>
+                    <button class="btn-new-month" onclick="refreshArchiveList()" style="font-size:0.8rem;padding:6px 12px;">Refresh</button>
+                </div>
+            </div>
+            <div id="archiveContent" class="hidden">
+                <div class="metrics-grid" style="margin:20px 0 16px;" id="archiveSummary"></div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th><th>Category</th><th>Name</th><th>Type</th>
+                                <th>Context</th><th>Method</th><th>Gross ($)</th>
+                                <th>Fee %</th><th>Fee ($)</th><th>Net ($)</th><th>Agent Box</th><th>Status</th><th>By</th>
+                            </tr>
+                        </thead>
+                        <tbody id="archiveTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="archivePlaceholder" style="color:var(--text-muted);font-size:0.9rem;padding:20px 0;">
+                Select a month above to view its archived transactions.
+            </div>
         </div>
     </div>
 
@@ -279,7 +468,7 @@
             authDomain: "billing-system-b9195.firebaseapp.com",
             databaseURL: "https://billing-system-b9195-default-rtdb.firebaseio.com",
             projectId: "billing-system-b9195",
-            storageBucket: "billing-system-b9195.appspot.com",
+            storageBucket: "billing-system-b9195.firebasestorage.app",
             messagingSenderId: "980846786015",
             appId: "1:980846786015:web:da26be88f3d08da493806a"
         };
@@ -290,8 +479,10 @@
 
         let currentMode = 'Player';
         let currentPartner = '';
+        let currentUserEmail = '';
+        const ADMIN_EMAIL = 'dany.haddad@live.com';
         let allTransactions = [];
-        let manualOverrides = {};
+        let monthOffsets = {};
 
         document.getElementById('loginForm').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -304,7 +495,8 @@
 
         auth.onAuthStateChanged(user => {
             if (user) {
-                const userEmail = user.email.toLowerCase();
+                currentUserEmail = user.email.toLowerCase();
+                const userEmail = currentUserEmail;
                 if (userEmail.includes('dany')) currentPartner = 'Dany';
                 else if (userEmail.includes('ziad')) currentPartner = 'Ziad';
                 else if (userEmail.includes('raymond')) currentPartner = 'Raymond';
@@ -325,22 +517,54 @@
 
         function logout() { auth.signOut(); }
 
+        var feeMode = 'pct'; // 'pct' or 'amt'
+
+        function setFeeMode(mode) {
+            feeMode = mode;
+            document.getElementById('feeBtnPct').style.background = mode === 'pct' ? 'var(--gold)' : 'transparent';
+            document.getElementById('feeBtnPct').style.color = mode === 'pct' ? 'var(--bg-main)' : 'var(--text-muted)';
+            document.getElementById('feeBtnPct').style.borderColor = mode === 'pct' ? 'var(--gold)' : 'var(--border)';
+            document.getElementById('feeBtnAmt').style.background = mode === 'amt' ? 'var(--gold)' : 'transparent';
+            document.getElementById('feeBtnAmt').style.color = mode === 'amt' ? 'var(--bg-main)' : 'var(--text-muted)';
+            document.getElementById('feeBtnAmt').style.borderColor = mode === 'amt' ? 'var(--gold)' : 'var(--border)';
+            document.getElementById('feePercent').placeholder = mode === 'pct' ? '0 %' : '0 $';
+            document.getElementById('feePercent').step = mode === 'pct' ? '0.1' : '0.01';
+        }
+
+        function updateFeeVisibility() {
+            var method = document.getElementById('paymentMethod').value;
+            var isAgent = currentMode === 'Agent';
+            // For agent: only show fee for Whish
+            var showFee = !isAgent || method === 'Whish';
+            document.getElementById('feeGroup').style.display = showFee ? '' : 'none';
+            // Toggle % / $ only for players
+            document.getElementById('feeToggleWrap').style.display = isAgent ? 'none' : '';
+        }
+
         function setMode(mode) {
             currentMode = mode;
             document.getElementById('modePlayer').classList.toggle('active', mode === 'Player');
             document.getElementById('modeAgent').classList.toggle('active', mode === 'Agent');
-            
             document.getElementById('lblTargetName').innerText = mode === 'Player' ? 'Player Name' : 'Transfer Clarification Note';
             document.getElementById('targetName').placeholder = mode === 'Player' ? 'Enter player name' : 'e.g. Agent Refill / Withdrawal';
             document.getElementById('gameGroup').classList.toggle('hidden', mode === 'Agent');
+            // Account dropdown only for players
+            var accGroup = document.getElementById('accountGroup');
+            if (accGroup) accGroup.style.display = mode === 'Player' ? '' : 'none';
+            updateFeeVisibility();
         }
 
         document.getElementById('txForm').addEventListener('submit', (e) => {
             e.preventDefault();
             
             const amount = parseFloat(document.getElementById('amount').value);
-            const feePct = parseFloat(document.getElementById('feePercent').value) || 0;
-            const feeVal = amount * (feePct / 100);
+            const feeRaw = parseFloat(document.getElementById('feePercent').value) || 0;
+            const feePct = (currentMode === 'Player' && feeMode === 'amt')
+                ? (amount > 0 ? (feeRaw / amount) * 100 : 0)
+                : feeRaw;
+            const feeVal = (currentMode === 'Player' && feeMode === 'amt')
+                ? feeRaw
+                : amount * (feePct / 100);
             const netVal = amount + feeVal;
 
             const txData = {
@@ -356,7 +580,8 @@
                 feeDollars: feeVal,
                 net: netVal,
                 status: document.getElementById('initialStatus').value,
-                recordedBy: currentPartner
+                recordedBy: currentPartner,
+                account: currentMode === 'Player' ? (document.getElementById('playerAccount').value || '') : ''
             };
 
             const newTxKey = db.ref().child('transactions').push().key;
@@ -398,52 +623,107 @@
             }
         }
 
-        function saveManualOverride(fieldKey, rawValue) {
-            let cleanVal = rawValue.replace(/[$,]/g, '');
-            let numericVal = parseFloat(cleanVal);
+        // ── EDIT MODAL ─────────────────────────────────────────────────
+        function openEdit(key) {
+            const tx = allTransactions.find(t => t.key === key);
+            if (!tx) return;
+            document.getElementById('editKey').value    = key;
+            document.getElementById('editName').value   = tx.name;
+            document.getElementById('editType').value   = tx.type;
+            document.getElementById('editGame').value   = tx.game || '—';
+            document.getElementById('editMethod').value = tx.method;
+            document.getElementById('editAmount').value = tx.gross;
+            document.getElementById('editFee').value    = tx.feePct;
+            document.getElementById('editStatus').value = tx.status;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+        function closeEdit() { document.getElementById('editModal').classList.add('hidden'); }
 
-            if (rawValue.trim() === "") {
-                clearManualOverride(fieldKey);
-                return;
-            }
-
-            if (isNaN(numericVal)) {
-                alert("Please enter a valid numeric amount.");
-                initRealtimeSync();
-                return;
-            }
-
-            db.ref('/manualOverrides/' + fieldKey).set(numericVal).then(() => {
+        function saveEdit() {
+            const key    = document.getElementById('editKey').value;
+            const amount = parseFloat(document.getElementById('editAmount').value);
+            const feePct = parseFloat(document.getElementById('editFee').value) || 0;
+            const feeVal = amount * (feePct / 100);
+            const netVal = amount + feeVal;
+            const updates = {
+                name:       document.getElementById('editName').value,
+                type:       document.getElementById('editType').value,
+                game:       document.getElementById('editGame').value,
+                method:     document.getElementById('editMethod').value,
+                gross:      amount,
+                feePct:     feePct,
+                feeDollars: feeVal,
+                net:        netVal,
+                status:     document.getElementById('editStatus').value
+            };
+            db.ref('/transactions/' + key).update(updates).then(() => {
                 db.ref('/logs/').push({
                     timestamp: firebase.database.ServerValue.TIMESTAMP,
-                    text: `${currentPartner} manually modified card metric [${fieldKey}] to $${numericVal.toFixed(2)}`
+                    text: `${currentPartner} EDITED transaction [${key}] — ${updates.name} $${netVal.toFixed(2)}`
+                });
+                closeEdit();
+            });
+        }
+
+        // ── NEW MONTH MODAL ────────────────────────────────────────────
+        function openNewMonth() { document.getElementById('newMonthModal').classList.remove('hidden'); }
+        function closeNewMonth() { document.getElementById('newMonthModal').classList.add('hidden'); }
+
+        function confirmNewMonth() {
+            if (!confirm("This will archive ALL current transactions and reset the ledger. Are you sure?")) return;
+
+            const offsets = {
+                lossGain:   parseFloat(document.getElementById('nm-lossGain').value)   || 0,
+                balance:    parseFloat(document.getElementById('nm-balance').value)    || 0,
+                fees:       parseFloat(document.getElementById('nm-fees').value)       || 0,
+                playerFees: parseFloat(document.getElementById('nm-playerFees').value) || 0,
+                volume:     parseFloat(document.getElementById('nm-volume').value)     || 0,
+            };
+
+            // Archive current transactions under /archive/YYYY-MM
+            const monthKey = new Date().toISOString().slice(0, 7);
+            const archiveUpdates = {};
+            allTransactions.forEach(tx => {
+                archiveUpdates[`/archive/${monthKey}/${tx.key}`] = tx;
+                archiveUpdates[`/transactions/${tx.key}`] = null;
+            });
+
+            // Save opening offsets for new month
+            archiveUpdates['/monthOffsets'] = offsets;
+
+            // Log it
+            archiveUpdates['/logs/' + db.ref().child('logs').push().key] = {
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                text: `${currentPartner} started a NEW MONTH — all transactions archived to /archive/${monthKey}`
+            };
+
+            db.ref().update(archiveUpdates).then(() => {
+                closeNewMonth();
+                refreshArchiveList();
+                // Reset modal fields
+                ['nm-lossGain','nm-balance','nm-fees','nm-playerFees','nm-volume'].forEach(id => {
+                    document.getElementById(id).value = 0;
                 });
             });
         }
 
-        function clearManualOverride(fieldKey) {
-            db.ref('/manualOverrides/' + fieldKey).remove().then(() => {
-                db.ref('/logs/').push({
-                    timestamp: firebase.database.ServerValue.TIMESTAMP,
-                    text: `${currentPartner} restored metric card [${fieldKey}] back to automated formula computation`
-                });
-            });
-        }
-
+        // ── REALTIME SYNC ──────────────────────────────────────────────
         function initRealtimeSync() {
-            db.ref('manualOverrides').on('value', (overrideSnap) => {
-                manualOverrides = overrideSnap.val() || {};
-                
+            refreshArchiveList();
+            loadAccounts();
+            db.ref('monthOffsets').on('value', (snap) => {
+                monthOffsets = snap.val() || {};
+
                 db.ref('transactions').on('value', (snapshot) => {
                     allTransactions = [];
                     snapshot.forEach(childSnapshot => {
                         let item = childSnapshot.val();
                         item.key = childSnapshot.key;
-                        if(!item.status) item.status = "Not Paid"; 
+                        if (!item.status) item.status = "Not Paid";
                         allTransactions.push(item);
                     });
-                    
                     renderDashboard(allTransactions);
+                    renderAccounts();
                 });
             });
 
@@ -451,9 +731,7 @@
                 const logsDiv = document.getElementById('logTrail');
                 logsDiv.innerHTML = '';
                 let logsArr = [];
-                snapshot.forEach(child => {
-                    logsArr.unshift(child.val());
-                });
+                snapshot.forEach(child => { logsArr.unshift(child.val()); });
                 logsArr.forEach(log => {
                     const entry = document.createElement('div');
                     entry.className = 'log-entry';
@@ -463,38 +741,43 @@
             });
         }
 
+        // ── RENDER DASHBOARD ───────────────────────────────────────────
         function renderDashboard(txList) {
-            let totalAgentDeposit = 0;
-            let totalAgentWithdraw = 0;
-            let totalPlayerDeposit = 0;
+            let totalAgentDeposit   = 0;
+            let totalAgentWithdraw  = 0;
+            let totalPlayerDeposit  = 0;
             let totalPlayerWithdraw = 0;
-            let cumulativeFees = 0;
+            let cumulativeFees      = 0;
+            let playerFees          = 0;
 
             const tbody = document.getElementById('txTableBody');
             tbody.innerHTML = '';
 
             txList.forEach(tx => {
-                // Modified Fee Calculation: Add if Deposit, Subtract if Withdraw
-                if (tx.type === 'Deposit') {
-                    cumulativeFees += (tx.feeDollars || 0);
-                } else if (tx.type === 'Withdraw') {
-                    cumulativeFees -= (tx.feeDollars || 0);
-                }
-                
+                // All fees (agent + player)
+                // Accumulated fees = agent withdraw fees - agent deposit fees
                 if (tx.category === 'Agent') {
-                    if (tx.type === 'Deposit') totalAgentDeposit += tx.net; 
-                    if (tx.type === 'Withdraw') totalAgentWithdraw += tx.net; 
+                    if (tx.type === 'Withdraw') cumulativeFees += (tx.feeDollars || 0);
+                    else cumulativeFees -= (tx.feeDollars || 0);
                 } else {
-                    if (tx.type === 'Deposit') totalPlayerDeposit += tx.net;
+                    // Player fees tracked separately
+                    playerFees += (tx.feeDollars || 0);
+                }
+
+                if (tx.category === 'Agent') {
+                    if (tx.type === 'Deposit')  totalAgentDeposit  += tx.net;
+                    if (tx.type === 'Withdraw') totalAgentWithdraw += tx.net;
+                } else {
+                    if (tx.type === 'Deposit')  totalPlayerDeposit  += tx.net;
                     if (tx.type === 'Withdraw') totalPlayerWithdraw += tx.net;
                 }
 
                 const tr = document.createElement('tr');
                 tr.setAttribute('data-category', tx.category);
-                
+
                 const pClass = `partner-${tx.recordedBy.toLowerCase()}`;
                 const selectStyleClass = (tx.status === 'Paid') ? 'status-paid' : 'status-unpaid';
-                
+
                 tr.innerHTML = `
                     <td class="mono" style="font-size:0.8rem; color:var(--text-muted);">${tx.dateString.split(',')[0]}</td>
                     <td><span class="badge ${tx.category.toLowerCase()}">${tx.category}</span></td>
@@ -515,66 +798,228 @@
                             <option value="Paid" ${tx.status === 'Paid' ? 'selected' : ''}>✅ Paid</option>
                         </select>
                     </td>
+                    <td style="font-size:0.82rem;color:var(--teal);font-weight:600;">${tx.account ? tx.account : '<span style="color:var(--text-muted)">—</span>'}</td>
                     <td><span class="${pClass}">${tx.recordedBy}</span></td>
+                    <td>${currentUserEmail === ADMIN_EMAIL ? `<button class="btn-edit" onclick="openEdit('${tx.key}')" title="Edit">✏️</button>` : ''}</td>
                     <td><button class="btn-delete" onclick="deleteRow('${tx.key}', ${tx.gross}, '${tx.type}', '${tx.category}')">🗑</button></td>
                 `;
                 tbody.appendChild(tr);
             });
 
-            // Reconfigured formulas to mapping specific requirements
-            let calculatedLossGain = totalAgentDeposit - totalAgentWithdraw;
-            let calculatedAgentBalance = totalAgentDeposit - totalAgentWithdraw - totalPlayerDeposit + totalPlayerWithdraw;
-            let calculatedFees = cumulativeFees;
-            let calculatedVolume = totalAgentDeposit;
+            // Apply month offsets on top of calculated values
+            const finalLossGain   = (totalAgentWithdraw - totalAgentDeposit) + (monthOffsets.lossGain || 0);
+            const finalBalance    = (totalAgentDeposit - totalAgentWithdraw - totalPlayerDeposit + totalPlayerWithdraw) + (monthOffsets.balance || 0);
+            const finalFees       = cumulativeFees + (monthOffsets.fees || 0);
+            const finalPlayerFees = playerFees + (monthOffsets.playerFees || 0);
+            const finalVolume     = totalAgentDeposit + (monthOffsets.volume || 0);
 
-            // Enforce live execution logic
-            let finalLossGain = (manualOverrides.lossGain !== undefined) ? manualOverrides.lossGain : calculatedLossGain;
-            let finalAgentBalance = (manualOverrides.agentBalance !== undefined) ? manualOverrides.agentBalance : calculatedAgentBalance;
-            let finalFees = (manualOverrides.feesOwed !== undefined) ? manualOverrides.feesOwed : calculatedFees;
-            let finalVolume = (manualOverrides.totalVolume !== undefined) ? manualOverrides.totalVolume : calculatedVolume;
+            const fmt = (n) => (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
 
-            document.getElementById('metricLossGain').value = Math.abs(finalLossGain).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('symbolLossGain').innerText = finalLossGain >= 0 ? '$' : '-$';
+            document.getElementById('metricLossGain').innerText = fmt(finalLossGain);
             document.getElementById('cardLossGain').style.color = finalLossGain >= 0 ? 'var(--green)' : 'var(--red)';
-            renderOverrideBadge('LossGain', manualOverrides.lossGain !== undefined, 'lossGain');
 
-            document.getElementById('metricBalance').value = Math.abs(finalAgentBalance).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('symbolBalance').innerText = finalAgentBalance >= 0 ? '$' : '-$';
-            document.getElementById('cardBalance').style.color = finalAgentBalance >= 0 ? 'var(--green)' : 'var(--red)';
-            renderOverrideBadge('Balance', manualOverrides.agentBalance !== undefined, 'agentBalance');
+            document.getElementById('metricBalance').innerText = fmt(finalBalance);
+            document.getElementById('cardBalance').style.color = finalBalance >= 0 ? 'var(--green)' : 'var(--red)';
 
-            document.getElementById('metricFees').value = finalFees.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('cardFees').style.color = 'var(--purple)';
-            renderOverrideBadge('Fees', manualOverrides.feesOwed !== undefined, 'feesOwed');
-
-            document.getElementById('metricVolume').value = finalVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            renderOverrideBadge('Volume', manualOverrides.totalVolume !== undefined, 'totalVolume');
-        }
-
-        function renderOverrideBadge(containerId, isOverridden, databaseKey) {
-            const container = document.getElementById('containerOverride' + containerId);
-            container.innerHTML = '';
-            if (isOverridden) {
-                const btn = document.createElement('button');
-                btn.className = 'btn-clear-override';
-                btn.innerText = '⚙️ Manual (Clear)';
-                btn.onclick = () => clearManualOverride(databaseKey);
-                container.appendChild(btn);
-            }
+            document.getElementById('metricFees').innerText = fmt(finalFees);
+            document.getElementById('metricPlayerFees').innerText = fmt(finalPlayerFees);
+            document.getElementById('metricVolume').innerText = fmt(finalVolume);
         }
 
         function filterTable(filterMode, btn) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-
             const rows = document.querySelectorAll('#txTableBody tr');
             rows.forEach(row => {
                 const cat = row.getAttribute('data-category');
-                if (filterMode === 'all' || cat === filterMode) {
-                    row.classList.remove('hidden');
-                } else {
-                    row.classList.add('hidden');
+                row.classList.toggle('hidden', filterMode !== 'all' && cat !== filterMode);
+            });
+        }
+
+        // ARCHIVE VIEWER
+        function refreshArchiveList() {
+            db.ref('archive').once('value', function(snap) {
+                var sel = document.getElementById('archiveMonthSelect');
+                var prev = sel.value;
+                sel.innerHTML = '<option value="">Select a month</option>';
+                if (snap.exists()) {
+                    var months = [];
+                    snap.forEach(function(child) { months.push(child.key); });
+                    months.sort().reverse();
+                    months.forEach(function(m) {
+                        var opt = document.createElement('option');
+                        opt.value = m;
+                        var d = new Date(m + '-01');
+                        opt.text = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+                        sel.appendChild(opt);
+                    });
+                    if (prev && months.indexOf(prev) !== -1) sel.value = prev;
                 }
+            });
+        }
+
+        function loadArchiveMonth(monthKey) {
+            if (!monthKey) {
+                document.getElementById('archiveContent').classList.add('hidden');
+                document.getElementById('archivePlaceholder').style.display = 'block';
+                return;
+            }
+            document.getElementById('archivePlaceholder').style.display = 'none';
+            document.getElementById('archiveContent').classList.remove('hidden');
+
+            db.ref('archive/' + monthKey).once('value', function(snap) {
+                var txList = [];
+                snap.forEach(function(child) {
+                    var item = child.val();
+                    item.key = child.key;
+                    txList.push(item);
+                });
+
+                var agentDep = 0, agentWit = 0, playerDep = 0, playerWit = 0, fees = 0, playerFees = 0;
+                txList.forEach(function(tx) {
+                    if (tx.category === 'Agent') {
+                        if (tx.type === 'Withdraw') fees += (tx.feeDollars || 0);
+                        else fees -= (tx.feeDollars || 0);
+                    } else {
+                        playerFees += (tx.feeDollars || 0);
+                    }
+                    if (tx.category === 'Agent') {
+                        if (tx.type === 'Deposit') agentDep += (tx.net || 0);
+                        else agentWit += (tx.net || 0);
+                    } else {
+                        if (tx.type === 'Deposit') playerDep += (tx.net || 0);
+                        else playerWit += (tx.net || 0);
+                    }
+                });
+
+                var lossGain = agentWit - agentDep;
+                var balance  = agentDep - agentWit - playerDep + playerWit;
+                var volume   = agentDep;
+
+                function fmtA(n) {
+                    return (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+                }
+
+                var cards = [
+                    { label: 'Loss / Gain',   val: fmtA(lossGain),   color: lossGain >= 0 ? 'var(--green)' : 'var(--red)',  top: 'var(--blue)' },
+                    { label: 'Agent Balance', val: fmtA(balance),    color: balance  >= 0 ? 'var(--green)' : 'var(--red)',  top: 'var(--gold)' },
+                    { label: 'All Fees',      val: fmtA(fees),       color: 'var(--purple)', top: 'var(--purple)' },
+                    { label: 'Player Fees',   val: fmtA(playerFees), color: 'var(--teal)',   top: 'var(--teal)' },
+                    { label: 'Total Volume',  val: fmtA(volume),     color: 'var(--text-main)', top: 'var(--border)' },
+                    { label: 'Transactions',  val: txList.length,    color: 'var(--gold)',   top: 'var(--border)' },
+                ];
+                document.getElementById('archiveSummary').innerHTML = cards.map(function(c) {
+                    return '<div class="metric-card" style="border-top-color:' + c.top + '">' +
+                           '<div class="metric-label">' + c.label + '</div>' +
+                           '<div class="archive-summary-val" style="color:' + c.color + '">' + c.val + '</div>' +
+                           '</div>';
+                }).join('');
+
+                var tbody = document.getElementById('archiveTableBody');
+                if (txList.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="13" class="archive-empty">No transactions in this archive.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = txList.map(function(tx) {
+                    var pClass = 'partner-' + (tx.recordedBy || '').toLowerCase();
+                    var statusColor = tx.status === 'Paid' ? 'var(--green)' : 'var(--red)';
+                    var gameClass = (tx.game || '-').replace(/[^a-zA-Z]/g, '').toLowerCase();
+                    return '<tr>' +
+                        '<td class="mono" style="font-size:0.8rem;color:var(--text-muted);">' + ((tx.dateString || '-').split(',')[0]) + '</td>' +
+                        '<td><span class="badge ' + (tx.category || '').toLowerCase() + '">' + tx.category + '</span></td>' +
+                        '<td style="font-weight:600;">' + tx.name + '</td>' +
+                        '<td><span class="badge ' + (tx.type || '').toLowerCase() + '">' + tx.type + '</span></td>' +
+                        '<td><span class="badge ' + gameClass + '">' + tx.game + '</span></td>' +
+                        '<td><span class="badge ' + (tx.method || '').toLowerCase() + '">' + tx.method + '</span></td>' +
+                        '<td class="mono">$' + (tx.gross || 0).toFixed(2) + '</td>' +
+                        '<td class="mono">' + tx.feePct + '%</td>' +
+                        '<td class="mono" style="color:var(--purple);">$' + (tx.feeDollars || 0).toFixed(2) + '</td>' +
+                        '<td class="mono" style="font-weight:700;">$' + (tx.net || 0).toFixed(2) + '</td>' +
+                        '<td class="mono" style="color:var(--text-muted);font-size:0.85rem;">' +
+                            (tx.category === 'Agent' ? (tx.type === 'Deposit' ? '+$' + (tx.net||0).toFixed(0) : '-$' + (tx.net||0).toFixed(0)) : '-') +
+                        '</td>' +
+                        '<td style="color:' + statusColor + ';font-size:0.85rem;font-weight:600;">' + (tx.status || '-') + '</td>' +
+                        '<td><span class="' + pClass + '">' + tx.recordedBy + '</span></td>' +
+                        '</tr>';
+                }).join('');
+            });
+        }
+
+        // ACCOUNTS
+        var allAccounts = [];
+
+        function loadAccounts() {
+            db.ref('accounts').on('value', function(snap) {
+                allAccounts = [];
+                snap.forEach(function(child) {
+                    var a = child.val();
+                    a.key = child.key;
+                    allAccounts.push(a);
+                });
+                renderAccounts();
+                populateAccountDropdown();
+            });
+        }
+
+        function renderAccounts() {
+            var list = document.getElementById('accountList');
+            if (allAccounts.length === 0) {
+                list.innerHTML = '<div class="accounts-empty">No accounts yet. Add one to get started.</div>';
+                return;
+            }
+            list.innerHTML = allAccounts.map(function(acc) {
+                // Find players assigned to this account
+                var assignedPlayers = allTransactions
+                    .filter(function(tx) { return tx.account === acc.name && tx.category === 'Player'; })
+                    .map(function(tx) { return tx.name; })
+                    .filter(function(v, i, a) { return a.indexOf(v) === i; });
+
+                var playerTags = assignedPlayers.length > 0
+                    ? assignedPlayers.map(function(p) { return '<span class="account-player-tag">' + p + '</span>'; }).join('')
+                    : '<span style="color:var(--text-muted);font-size:0.78rem;">No players yet</span>';
+
+                var canDelete = currentUserEmail === ADMIN_EMAIL;
+                return '<div class="account-card">' +
+                    '<div style="flex:1">' +
+                        '<div class="account-name">' + acc.name + '</div>' +
+                        '<div class="account-meta">' + (acc.platform || '') + (acc.notes ? ' &mdash; ' + acc.notes : '') + '</div>' +
+                        '<div class="account-players">' + playerTags + '</div>' +
+                    '</div>' +
+                    (canDelete ? '<div class="account-actions"><button class="btn-account-del" onclick="deleteAccount(\'' + acc.key + '\', \'' + acc.name + '\')" title="Delete account">🗑</button></div>' : '') +
+                '</div>';
+            }).join('');
+        }
+
+        function populateAccountDropdown() {
+            var sel = document.getElementById('playerAccount');
+            var prev = sel.value;
+            sel.innerHTML = '<option value="">— No account assigned —</option>';
+            allAccounts.forEach(function(acc) {
+                var opt = document.createElement('option');
+                opt.value = acc.name;
+                opt.text = acc.name + (acc.platform ? ' (' + acc.platform + ')' : '');
+                sel.appendChild(opt);
+            });
+            if (prev) sel.value = prev;
+        }
+
+        function addAccount() {
+            var name = document.getElementById('accName').value.trim();
+            var platform = document.getElementById('accPlatform').value.trim();
+            var notes = document.getElementById('accNotes').value.trim();
+            if (!name) { document.getElementById('accName').focus(); return; }
+            db.ref('accounts').push({ name: name, platform: platform, notes: notes, createdBy: currentPartner, createdAt: firebase.database.ServerValue.TIMESTAMP }).then(function() {
+                db.ref('logs/').push({ timestamp: firebase.database.ServerValue.TIMESTAMP, text: currentPartner + ' added account: ' + name });
+                document.getElementById('accName').value = '';
+                document.getElementById('accPlatform').value = '';
+                document.getElementById('accNotes').value = '';
+            });
+        }
+
+        function deleteAccount(key, name) {
+            if (!confirm('Delete account "' + name + '"? Players assigned to it will show no account.')) return;
+            db.ref('accounts/' + key).remove().then(function() {
+                db.ref('logs/').push({ timestamp: firebase.database.ServerValue.TIMESTAMP, text: currentPartner + ' deleted account: ' + name });
             });
         }
     </script>
