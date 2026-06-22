@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Ledger & Rake — Agent Accounting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#141A26;
+    --ink-soft:#222C3D;
+    --paper:#F8F5EE;
+    --paper-deep:#EFE8D8;
+    --line:#E0D6BE;
+    --accent:#C8862D;
+    --accent-deep:#A66A1C;
+    --teal:#1F6F62;
+    --teal-bg:#E2EFEA;
+    --green:#2E7D54;
+    --green-bg:#E2F1E7;
+    --red:#B23B30;
+    --red-bg:#F6E4E1;
+    --slate:#6E6354;
+    --ink-text:#241F16;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink-text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .serif{font-family:'Fraunces',serif;}
+
+  /* ---------- Login ---------- */
+  #login{
+    position:fixed;inset:0;background:var(--ink);display:flex;align-items:center;justify-content:center;z-index:50;
+    background-image: radial-gradient(circle at 20% 20%, rgba(200,134,45,0.14), transparent 50%);
+  }
+  .login-card{
+    background:var(--paper);border-radius:4px;padding:40px 44px;width:360px;box-shadow:0 30px 60px rgba(0,0,0,0.4);
+    border-top:6px solid var(--accent);
+  }
+  .login-card h1{font-family:'Fraunces',serif;font-size:28px;margin:0 0 4px;letter-spacing:-0.5px;}
+  .login-card p.sub{color:var(--slate);font-size:13px;margin:0 0 24px;}
+  .login-card label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:var(--slate);margin-bottom:6px;margin-top:16px;}
+  select, input, button, textarea{font-family:'Inter',sans-serif;font-size:14px;}
+  .login-card select, .login-card input{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:3px;background:#fff;
+  }
+  .btn{
+    cursor:pointer;border:none;border-radius:3px;padding:10px 16px;font-weight:600;font-size:13px;
+    background:var(--ink);color:var(--paper);transition:transform .08s ease, opacity .15s;
+  }
+  .btn:hover{opacity:0.88;}
+  .btn:active{transform:scale(0.98);}
+  .btn-accent{background:var(--accent);color:#fff;}
+  .btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line);}
+  .btn-block{width:100%;margin-top:22px;}
+  .login-error{color:var(--red);font-size:12px;margin-top:10px;min-height:16px;}
+  .login-loading{color:var(--slate);font-size:12px;margin-top:10px;min-height:16px;}
+
+  /* ---------- Shell ---------- */
+  #app{display:none;min-height:100vh;}
+  .shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
+  .sidebar{background:var(--ink);color:#D8D2C4;padding:22px 16px;display:flex;flex-direction:column;}
+  .mobile-topbar{display:none;}
+  .drawer-backdrop{display:none;}
+  .brand{font-family:'Fraunces',serif;font-size:20px;color:#fff;padding:0 8px 18px;border-bottom:1px solid #3A4456;margin-bottom:14px;}
+  .brand small{display:block;font-family:'Inter';font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-top:4px;}
+  .nav-item{
+    display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:4px;cursor:pointer;font-size:13.5px;font-weight:500;color:#C7C1B3;
+    margin-bottom:2px;
+  }
+  .nav-item:hover{background:var(--ink-soft);color:#fff;}
+  .nav-item.active{background:var(--accent);color:#fff;}
+  .nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.85;}
+  .sidebar-foot{margin-top:auto;border-top:1px solid #3A4456;padding-top:14px;font-size:12px;color:#9A9385;}
+  .sidebar-foot b{color:#EADFC8;display:block;font-size:13px;}
+  .logout-link{color:var(--accent);cursor:pointer;text-decoration:underline;font-size:12px;display:inline-block;margin-top:6px;}
+
+  .main{padding:28px 36px 60px;overflow-y:auto;}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:10px;}
+  .topbar h2{font-family:'Fraunces',serif;font-size:26px;margin:0;}
+  .topbar .meta{color:var(--slate);font-size:13px;margin-top:4px;}
+  .month-pill{
+    background:#fff;border:1px solid var(--line);padding:6px 12px;border-radius:20px;font-size:12.5px;font-weight:600;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .month-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
+  .month-pill.closed .dot{background:var(--red);}
+
+  /* ---------- Cards / stats ---------- */
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:26px;}
+  .stat-card{background:#fff;border:1px solid var(--line);border-radius:5px;padding:16px 18px;position:relative;overflow:hidden;box-shadow:0 1px 2px rgba(40,30,10,0.04);}
+  .stat-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line);}
+  .stat-card.pos:before{background:var(--green);}
+  .stat-card.neg:before{background:var(--red);}
+  .stat-card.info:before{background:var(--teal);}
+  .stat-card.info .value{color:var(--teal);}
+  .stat-card .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--slate);font-weight:600;}
+  .stat-card .value{font-family:'IBM Plex Mono',monospace;font-size:24px;margin-top:6px;font-weight:600;}
+  .stat-card.pos .value{color:var(--green);}
+  .stat-card.neg .value{color:var(--red);}
+  .stat-card .sub{font-size:11.5px;color:var(--slate);margin-top:4px;}
+
+  /* ---------- Ledger tape (signature element) ---------- */
+  .tape-wrap{display:flex;justify-content:center;margin-bottom:28px;}
+  .tape{
+    background:#fffdf8;width:320px;padding:18px 22px 22px;border-radius:2px;
+    box-shadow:0 10px 24px rgba(40,30,10,0.12);position:relative;
+    background-image: repeating-linear-gradient(transparent, transparent 27px, var(--paper-deep) 28px);
+  }
+  .tape:before, .tape:after{
+    content:"";position:absolute;left:0;right:0;height:10px;
+    background-image: radial-gradient(circle at 8px 5px, transparent 5px, #fffdf8 5.5px);
+    background-size: 16px 10px; background-repeat: repeat-x;
+  }
+  .tape:before{top:-9px;}
+  .tape:after{bottom:-9px;transform:rotate(180deg);}
+  .tape .row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;color:var(--slate);}
+  .tape .row b{color:var(--ink-text);font-family:'IBM Plex Mono',monospace;}
+  .tape .total{border-top:2px dashed var(--line);margin-top:8px;padding-top:10px;display:flex;justify-content:space-between;align-items:baseline;}
+  .tape .total .lab{font-family:'Fraunces',serif;font-size:14px;}
+  .tape .total .amt{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--ink);}
+
+  /* ---------- Tables ---------- */
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:5px;overflow:hidden;font-size:13px;}
+  thead th{
+    background:var(--paper-deep);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;
+    letter-spacing:.05em;color:var(--slate);border-bottom:1px solid var(--line);font-weight:700;
+  }
+  tbody td{padding:10px 12px;border-bottom:1px solid #EFEAE0;vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#FBF9F3;}
+  .amt-cell{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .amt-pos{color:var(--green);}
+  .amt-neg{color:var(--red);}
+  .table-wrap{background:#fff;border-radius:5px;overflow-x:auto;border:1px solid var(--line);}
+  .table-wrap table{border:none;border-radius:0;}
+
+  /* ---------- Status stamp badges ---------- */
+  .stamp{
+    display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.08em;
+    padding:3px 9px;border-radius:3px;border:1.5px dashed currentColor;text-transform:uppercase;cursor:pointer;
+    transform:rotate(-2deg);
+  }
+  .stamp.paid{color:var(--green);background:var(--green-bg);}
+  .stamp.notpaid{color:var(--red);background:var(--red-bg);}
+
+  /* ---------- Forms ---------- */
+  .card{background:#fff;border:1px solid var(--line);border-radius:6px;padding:20px 22px;margin-bottom:22px;box-shadow:0 1px 3px rgba(40,30,10,0.05);}
+  .card h3{font-family:'Fraunces',serif;font-size:17px;margin:0 0 14px;}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px 14px;align-items:end;}
+  .field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate);font-weight:700;margin-bottom:5px;}
+  .field input, .field select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:3px;background:#FCFBF7;}
+  .field input:focus, .field select:focus{outline:2px solid var(--accent);outline-offset:1px;}
+  .field-note{font-size:11px;color:var(--slate);margin-top:3px;}
+  .full-row{grid-column:1/-1;}
+  .inline-actions{display:flex;gap:10px;margin-top:6px;}
+
+  .help-box{
+    background:#FBF2E4;border:1px solid #E8D2A4;border-left:4px solid var(--accent);padding:12px 16px;border-radius:4px;
+    font-size:12.5px;color:#5C4626;margin-bottom:22px;line-height:1.5;
+  }
+  .help-box b{color:#3E2E12;}
+
+  .tag-pill{background:var(--paper-deep);border-radius:12px;padding:3px 10px;font-size:11.5px;font-weight:600;color:var(--ink-text);}
+  .empty-state{padding:30px;text-align:center;color:var(--slate);font-size:13px;}
+  .section-tabs{display:flex;gap:6px;margin-bottom:16px;}
+  .section-tabs button{padding:7px 14px;border-radius:20px;border:1px solid var(--line);background:#fff;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--slate);}
+  .section-tabs button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .save-indicator{position:fixed;bottom:16px;right:20px;font-size:11.5px;color:var(--slate);background:#fff;border:1px solid var(--line);padding:6px 12px;border-radius:14px;opacity:0;transition:opacity .3s;}
+  .save-indicator.show{opacity:1;}
+  .danger-zone{border:1px solid var(--red-bg);background:#FFF7F5;}
+  .small-btn{padding:5px 10px;font-size:11.5px;border-radius:3px;}
+  .row-flex{display:flex;gap:8px;align-items:center;}
+  .users-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+  .user-card{border:1px solid var(--line);border-radius:5px;padding:14px;background:#FCFBF7;}
+  .user-card input{margin-top:6px;}
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 880px){
+    .login-card{width:auto;max-width:92vw;padding:32px 26px;}
+    .shell{grid-template-columns:1fr;}
+    .sidebar{
+      position:fixed;top:0;left:0;height:100vh;width:248px;z-index:60;
+      transform:translateX(-100%);transition:transform .25s ease;box-shadow:8px 0 24px rgba(0,0,0,.25);
+      overflow-y:auto;
+    }
+    .sidebar.open{transform:translateX(0);}
+    .drawer-backdrop{
+      display:block;position:fixed;inset:0;background:rgba(10,12,18,.55);z-index:55;opacity:0;
+      pointer-events:none;transition:opacity .25s ease;
+    }
+    .drawer-backdrop.open{opacity:1;pointer-events:auto;}
+    .mobile-topbar{
+      display:flex;align-items:center;gap:12px;background:var(--ink);color:#fff;padding:12px 16px;
+      position:sticky;top:0;z-index:40;
+    }
+    .mobile-topbar .hamburger{
+      background:none;border:none;color:#fff;cursor:pointer;padding:4px;display:flex;align-items:center;
+    }
+    .mobile-topbar .hamburger svg{width:24px;height:24px;}
+    .mobile-topbar .mt-brand{font-family:'Fraunces',serif;font-size:17px;}
+    .main{padding:18px 14px 60px;}
+    .topbar{flex-direction:column;align-items:flex-start;}
+    .topbar h2{font-size:21px;}
+    .stat-row{grid-template-columns:repeat(2,1fr);gap:10px;}
+    .stat-card{padding:12px 13px;}
+    .stat-card .value{font-size:19px;}
+    .form-grid{grid-template-columns:1fr 1fr;gap:10px;}
+    .users-grid{grid-template-columns:1fr;}
+    .card{padding:16px;}
+    .tape{width:100%;max-width:340px;}
+    table{font-size:12px;}
+    thead th, tbody td{padding:8px 8px;}
+    .btn{padding:11px 14px;}
+    .stamp{padding:5px 10px;}
+    .section-tabs button{padding:8px 13px;}
+  }
+  @media (max-width: 480px){
+    .stat-row{grid-template-columns:1fr 1fr;}
+    .form-grid{grid-template-columns:1fr;}
+    .login-card h1{font-size:24px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="login-card">
+    <h1>Ledger & Rake</h1>
+    <p class="sub">Agent accounting — sign in to continue</p>
+    <label>Email</label>
+    <input id="loginEmail" type="email" placeholder="you@yourteam.com" autocomplete="username">
+    <label>Password</label>
+    <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password">
+    <button class="btn btn-accent btn-block" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-loading" id="loginLoading"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+  <div class="mobile-topbar">
+    <button class="hamburger" onclick="openDrawer()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    <span class="mt-brand">Ledger & Rake</span>
+  </div>
+  <div class="shell">
+    <div class="sidebar" id="sidebar">
+      <div class="brand">Ledger & Rake<small>Agent Accounting</small></div>
+      <div class="nav-item" data-tab="dashboard" onclick="setTab('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg> Dashboard</div>
+      <div class="nav-item" data-tab="superagent" onclick="setTab('superagent')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3v4M7 17v4M3 7h4M17 17h4M7 7l10 10"/></svg> Super Agent</div>
+      <div class="nav-item" data-tab="players" onclick="setTab('players')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c2.3.4 4 2.4 4 5.8"/></svg> Players</div>
+      <div class="nav-item" data-tab="cashback" onclick="setTab('cashback')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M9.5 9h.01M14.5 15h.01"/></svg> Cashback & Rakeback</div>
+      <div class="nav-item" data-tab="months" onclick="setTab('months')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg> Months</div>
+      <div class="nav-item" data-tab="report" onclick="setTab('report')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9.3 8.4L3 21l1.4-3.6A8.4 8.4 0 1 1 21 11.5z"/></svg> WhatsApp Report</div>
+      <div class="nav-item" data-tab="settings" onclick="setTab('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.6 1z"/></svg> Settings</div>
+      <div class="sidebar-foot">
+        Signed in as<b id="sidebarUser">—</b>
+        <span class="logout-link" onclick="doLogout()">Sign out</span>
+      </div>
+    </div>
+    <div class="main" id="main"></div>
+  </div>
+</div>
+
+<div class="save-indicator" id="saveIndicator">Saved</div>
+
+<!-- Firebase (compat build — works with plain <script> tags, no bundler needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+
+<script>
+  window.FIREBASE_CONFIG = {
+    apiKey: "AIzaSyAHmgMJ_06TtYQ0nAHFY6hckxRKNqUt_WI",
+    authDomain: "accounting-billing-new.firebaseapp.com",
+    databaseURL: "https://accounting-billing-new-default-rtdb.firebaseio.com",
+    projectId: "accounting-billing-new",
+    storageBucket: "accounting-billing-new.firebasestorage.app",
+    messagingSenderId: "348683730498",
+    appId: "1:348683730498:web:e7eda01144affce24eb7db"
+  };
+</script>
+
+<script>
+/* =========================================================================
+   FIREBASE INIT
+   ========================================================================= */
+firebase.initializeApp(window.FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* =========================================================================
+   STATE
+   ========================================================================= */
+let state = { settings:null, months:{}, transactions:[] };
+let currentUser = null;
+let currentTab = 'dashboard';
+let cbSubTab = 'casino';
+let settingsLoaded = false, monthsLoaded = false, txLoaded = false;
+let unsubSettings = null, unsubMonths = null, unsubTx = null;
+
+function uid(p){ return p+'_'+Date.now()+'_'+Math.floor(Math.random()*9999); }
+function monthLabelNow(){ return new Date().toLocaleString('en-US',{month:'long', year:'numeric'}); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+function defaultSettings(){
+  return {
+    exchangeRate: 89500, // LBP per 1 USD
+    casinoCashbackRatePct: 20,
+    pokerRakebackRatePct: 35,
+    superAgentName: 'Super Agent',
+    currentMonthId: null
+  };
+}
+function defaultMonth(){
+  return {
+    label: monthLabelNow(), startDate: todayStr(),
+    startBalanceUSD: 900, status:'open',
+    casinoCashbackRatePct: 20, pokerRakebackRatePct: 35,
+    casinoCashbackStatus:'Not Paid', casinoCashbackDate:'',
+    pokerRakebackAmountUSD: 0, pokerRakebackStatus:'Not Paid', pokerRakebackDate:'',
+    startingLossGainUSD: 0,
+    startingOwedToSuperAgentUSD: 0,
+    startingOwedBySuperAgentUSD: 0,
+    startingSAFeesUSD: 0,
+    startingCommissionFeesUSD: 0,
+    openingPlayerBalances: []
+  };
+}
+
+/* =========================================================================
+   FIRESTORE SYNC (real-time — every signed-in user sees the same live data)
+   ========================================================================= */
+function attachListeners(){
+  unsubSettings = db.collection('meta').doc('app').onSnapshot(async snap=>{
+    if(!snap.exists){
+      await db.collection('meta').doc('app').set(defaultSettings());
+      return; // this write re-triggers the snapshot
+    }
+    state.settings = snap.data();
+    settingsLoaded = true;
+    maybeSeedFirstMonth();
+    render();
+  }, err=>console.error('settings listener error', err));
+
+  unsubMonths = db.collection('months').onSnapshot(snap=>{
+    const months = {};
+    snap.forEach(d=>{ months[d.id] = {id:d.id, ...d.data()}; });
+    state.months = months;
+    monthsLoaded = true;
+    maybeSeedFirstMonth();
+    render();
+  }, err=>console.error('months listener error', err));
+
+  unsubTx = db.collection('transactions').onSnapshot(snap=>{
+    state.transactions = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    txLoaded = true;
+    render();
+  }, err=>console.error('transactions listener error', err));
+}
+function detachListeners(){
+  if(unsubSettings) unsubSettings();
+  if(unsubMonths) unsubMonths();
+  if(unsubTx) unsubTx();
+  unsubSettings = unsubMonths = unsubTx = null;
+  settingsLoaded = monthsLoaded = txLoaded = false;
+  state = { settings:null, months:{}, transactions:[] };
+}
+async function maybeSeedFirstMonth(){
+  if(!settingsLoaded || !monthsLoaded) return;
+  if(Object.keys(state.months).length===0){
+    const ref = await db.collection('months').add(defaultMonth());
+    await db.collection('meta').doc('app').update({currentMonthId: ref.id});
+  } else if(!state.settings.currentMonthId){
+    const ids = Object.keys(state.months).sort((a,b)=> (state.months[b].startDate||'').localeCompare(state.months[a].startDate||''));
+    await db.collection('meta').doc('app').update({currentMonthId: ids[0]});
+  }
+}
+function flashSaved(){
+  const el = document.getElementById('saveIndicator');
+  el.classList.add('show');
+  clearTimeout(window._saveT);
+  window._saveT = setTimeout(()=>el.classList.remove('show'), 900);
+}
+
+/* =========================================================================
+   AUTH
+   ========================================================================= */
+function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginLoading').textContent = 'Signing in…';
+  auth.signInWithEmailAndPassword(email, password)
+    .catch(err=>{
+      document.getElementById('loginLoading').textContent = '';
+      document.getElementById('loginError').textContent = friendlyAuthError(err);
+    });
+}
+function friendlyAuthError(err){
+  const map = {
+    'auth/invalid-email':'That email address looks invalid.',
+    'auth/user-not-found':'No account found for that email — ask whoever set up Firebase to add you in the console.',
+    'auth/wrong-password':'Incorrect password.',
+    'auth/invalid-credential':'Incorrect email or password.',
+    'auth/too-many-requests':'Too many attempts — please wait a moment and try again.',
+    'auth/network-request-failed':'Network error — check your connection.'
+  };
+  return map[err.code] || ('Sign-in failed: ' + err.message);
+}
+function doLogout(){ auth.signOut(); }
+
+auth.onAuthStateChanged(async (user)=>{
+  document.getElementById('loginLoading').textContent = '';
+  if(user){
+    currentUser = user;
+    if(!user.displayName){
+      let name = '';
+      while(!name){
+        name = (window.prompt("Welcome! What's your name? (shown on transactions you log)") || '').trim();
+      }
+      try{ await user.updateProfile({displayName:name}); }catch(e){ console.error(e); }
+      currentUser = auth.currentUser;
+    }
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('sidebarUser').textContent = currentUser.displayName || currentUser.email;
+    attachListeners();
+    setTab('dashboard');
+  } else {
+    currentUser = null;
+    detachListeners();
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login').style.display = 'flex';
+    document.getElementById('loginPassword').value = '';
+  }
+});
+
+/* =========================================================================
+   TX TYPE CONFIG
+   ========================================================================= */
+const TX_TYPES = {
+  sa_deposit:      {label:'Deposit to Super Agent (top-up)', category:'superagent', dir:+1, hasFee:true,  feeLabel:'Transfer fee %', feeNote:'Fee charged by Super Agent on this payment method'},
+  sa_withdrawal:   {label:'Withdrawal from Super Agent',     category:'superagent', dir:-1, hasFee:true,  feeLabel:'Transfer fee %', feeNote:'Fee charged by Super Agent on this payment method'},
+  player_deposit:  {label:'Deposit for Player (funding play)', category:'player', dir:-1, hasFee:false, partyLabel:'Player name'},
+  player_withdrawal:{label:'Player Cashout (winnings paid out)', category:'player', dir:-1, hasFee:true, feeLabel:'Cashout fee %', feeNote:'Fee you charge the player on this withdrawal', partyLabel:'Player name'}
+};
+const PAYMENT_METHODS = ['Cash','Whish','OMT','MyMonty'];
+
+function rawEffect(tx){
+  if(tx.type === 'sa_deposit') return tx.amountUSD;
+  if(tx.type === 'sa_withdrawal') return -tx.amountUSD;
+  if(tx.type === 'player_deposit') return -tx.amountUSD;
+  if(tx.type === 'player_withdrawal') return -tx.amountUSD;
+  return 0;
+}
+function computeTxEffect(tx){ return rawEffect(tx); }
+
+/* =========================================================================
+   DERIVED HELPERS
+   ========================================================================= */
+function getMonth(id){ return state.months[id]; }
+function currentMonth(){ return getMonth(state.settings && state.settings.currentMonthId); }
+function txForMonth(monthId){ return state.transactions.filter(t=>t.monthId===monthId); }
+
+function monthBalance(monthId){
+  const m = getMonth(monthId);
+  let bal = m.startBalanceUSD;
+  txForMonth(monthId).forEach(t=> bal += computeTxEffect(t));
+  if(m.casinoCashbackStatus==='Paid') bal += casinoCashbackAmount(m);
+  if(m.pokerRakebackStatus==='Paid') bal += m.pokerRakebackAmountUSD;
+  return bal;
+}
+function playerLossTotal(monthId, platform){
+  platform = platform || 'Casino';
+  let total = 0;
+  txForMonth(monthId).filter(t=>TX_TYPES[t.type].category==='player' && (t.platform||'Casino')===platform).forEach(t=>{
+    if(t.type==='player_deposit') total += t.amountUSD;
+    if(t.type==='player_withdrawal') total -= t.amountUSD;
+  });
+  return total;
+}
+function casinoCashbackAmount(m){ return (playerLossTotal(m.id,'Casino') + (m.startingLossGainUSD||0)) * (m.casinoCashbackRatePct||0) / 100; }
+
+function feesDue(monthId){
+  let saFees = 0, playerFees = 0;
+  txForMonth(monthId).forEach(t=>{
+    const fee = t.feeAmountUSD || 0;
+    if(!fee) return;
+    if(t.type.startsWith('sa_')) saFees += fee;
+    else playerFees += fee;
+  });
+  const m = getMonth(monthId);
+  saFees += (m.startingSAFeesUSD||0);
+  return {saFees, playerFees, net: playerFees - saFees};
+}
+
+function pendingTotals(monthId){
+  let owedToSuperAgent = 0, owedBySuperAgent = 0;
+  txForMonth(monthId).filter(t=>t.status!=='Paid' && t.type.startsWith('sa_')).forEach(t=>{
+    if(t.type==='sa_deposit') owedToSuperAgent += t.amountUSD;
+    if(t.type==='sa_withdrawal') owedBySuperAgent += t.amountUSD;
+  });
+  const m = getMonth(monthId);
+  owedToSuperAgent += (m.startingOwedToSuperAgentUSD||0);
+  owedBySuperAgent += (m.startingOwedBySuperAgentUSD||0);
+  let increase = owedBySuperAgent, decrease = owedToSuperAgent;
+  if(m.casinoCashbackStatus!=='Paid') increase += casinoCashbackAmount(m);
+  if(m.pokerRakebackStatus!=='Paid') increase += (m.pokerRakebackAmountUSD||0);
+  return {increase, decrease, owedToSuperAgent, owedBySuperAgent};
+}
+function commissionDue(monthId){
+  const m = getMonth(monthId);
+  const cbAmt = casinoCashbackAmount(m);
+  const rbAmt = m.pokerRakebackAmountUSD || 0;
+  const startingComm = m.startingCommissionFeesUSD||0;
+  const totalEarned = cbAmt + rbAmt + startingComm;
+  const unpaid = (m.casinoCashbackStatus!=='Paid'?cbAmt:0) + (m.pokerRakebackStatus!=='Paid'?rbAmt:0) + startingComm;
+  return {totalEarned, unpaid, cbAmt, rbAmt};
+}
+function normName(n){ return (n||'').trim().toLowerCase().replace(/\s+/g,' '); }
+function playerBalances(){
+  const map = {};
+  state.transactions.filter(t=>TX_TYPES[t.type].category==='player').forEach(t=>{
+    const key = normName(t.party);
+    if(!map[key]) map[key] = {displayName:t.party, owedToYou:0, owedByYou:0, lastDate:t.date, pendingCount:0};
+    if(t.date > map[key].lastDate) map[key].lastDate = t.date;
+    if(t.status!=='Paid'){
+      map[key].pendingCount++;
+      if(t.type==='player_deposit') map[key].owedToYou += t.amountUSD;
+      if(t.type==='player_withdrawal') map[key].owedByYou += t.amountUSD;
+    }
+  });
+  Object.values(state.months).forEach(m=>{
+    (m.openingPlayerBalances||[]).forEach(o=>{
+      const key = normName(o.name);
+      if(!map[key]) map[key] = {displayName:o.name, owedToYou:0, owedByYou:0, lastDate:m.startDate, pendingCount:0};
+      map[key].owedToYou += (o.owesYou||0);
+      map[key].owedByYou += (o.youOwe||0);
+    });
+  });
+  return Object.values(map).map(p=>({...p, net: p.owedToYou - p.owedByYou})).sort((a,b)=> Math.abs(b.net)-Math.abs(a.net));
+}
+
+function fmtUSD(n){
+  const v = (n||0);
+  const sign = v<0 ? '-' : '';
+  return sign + '$' + Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtLBP(n){ return Math.round(n||0).toLocaleString('en-US') + ' LBP'; }
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* =========================================================================
+   NAV / RENDER ROUTER
+   ========================================================================= */
+function setTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.classList.toggle('active', el.dataset.tab===tab);
+  });
+  closeDrawer();
+  render();
+}
+function openDrawer(){
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('drawerBackdrop').classList.add('open');
+}
+function closeDrawer(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('drawerBackdrop').classList.remove('open');
+}
+function render(){
+  if(!currentUser) return;
+  const main = document.getElementById('main');
+  if(!settingsLoaded || !monthsLoaded || !txLoaded || !state.settings || !state.settings.currentMonthId || !currentMonth()){
+    main.innerHTML = '<div class="empty-state">Loading your data…</div>';
+    return;
+  }
+  let html = renderTopbar();
+  if(currentTab==='dashboard') html += renderDashboard();
+  else if(currentTab==='superagent') html += renderTxTab('superagent');
+  else if(currentTab==='players') html += renderTxTab('player');
+  else if(currentTab==='cashback') html += renderCashback();
+  else if(currentTab==='months') html += renderMonths();
+  else if(currentTab==='report') html += renderReport();
+  else if(currentTab==='settings') html += renderSettings();
+  main.innerHTML = html;
+}
+function renderTopbar(){
+  const m = currentMonth();
+  const titles = {dashboard:'Dashboard', superagent:'Super Agent Transactions', players:'Player Transactions', cashback:'Cashback & Rakeback', months:'Months', report:'WhatsApp Report', settings:'Settings'};
+  return `
+  <div class="topbar">
+    <div>
+      <h2>${titles[currentTab]}</h2>
+      <div class="meta">Active month: <b>${escapeHtml(m.label)}</b></div>
+    </div>
+    <span class="month-pill ${m.status==='closed'?'closed':''}"><span class="dot"></span> ${m.status==='open'?'Open':'Closed'} · ${escapeHtml(m.label)}</span>
+  </div>`;
+}
+
+/* =========================================================================
+   DASHBOARD
+   ========================================================================= */
+function renderDashboard(){
+  const m = currentMonth();
+  const bal = monthBalance(m.id);
+  const pend = pendingTotals(m.id);
+  const cbAmt = casinoCashbackAmount(m);
+  const comm = commissionDue(m.id);
+  const fees = feesDue(m.id);
+  const players = playerBalances().filter(p=>p.net!==0 || p.pendingCount>0);
+  const recent = state.transactions.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,8);
+
+  return `
+  <div class="help-box">
+    <b>How the balance works:</b> deposits/withdrawals hit your Agent Balance <b>immediately when logged</b> — a Super Agent top-up adds to it, a Super Agent withdrawal or any player funding/cashout subtracts from it. Paid / Not Paid tracks the separate <b>cash settlement</b> (who still owes who), shown below and in the Player Balances table. <b>Fees are excluded from the Agent Balance entirely</b> — they accrue separately and are settled at month end.
+  </div>
+
+  <div class="tape-wrap">
+    <div class="tape">
+      <div class="row"><span>Month start balance</span><b>${fmtUSD(m.startBalanceUSD)}</b></div>
+      <div class="row"><span>Super Agent net</span><b>${fmtUSD(txForMonth(m.id).filter(t=>t.type.startsWith('sa_')).reduce((s,t)=>s+computeTxEffect(t),0))}</b></div>
+      <div class="row"><span>Players net</span><b>${fmtUSD(txForMonth(m.id).filter(t=>t.type.startsWith('player_')).reduce((s,t)=>s+computeTxEffect(t),0))}</b></div>
+      <div class="row"><span>Casino cashback</span><b>${m.casinoCashbackStatus==='Paid'?fmtUSD(cbAmt):'pending'}</b></div>
+      <div class="row"><span>Poker rakeback</span><b>${m.pokerRakebackStatus==='Paid'?fmtUSD(m.pokerRakebackAmountUSD):'pending'}</b></div>
+      <div class="total"><span class="lab">Agent Balance</span><span class="amt">${fmtUSD(bal)}</span></div>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card neg"><div class="label">You owe Super Agent</div><div class="value">${fmtUSD(pend.owedToSuperAgent)}</div><div class="sub">Not Paid top-ups + starting carryover</div></div>
+    <div class="stat-card pos"><div class="label">Super Agent owes you</div><div class="value">${fmtUSD(pend.owedBySuperAgent)}</div><div class="sub">Not Paid withdrawals + starting carryover</div></div>
+    <div class="stat-card pos"><div class="label">Commission earned so far</div><div class="value">${fmtUSD(comm.totalEarned)}</div><div class="sub">Still unpaid: ${fmtUSD(comm.unpaid)} (cashback + rakeback + carryover)</div></div>
+    <div class="stat-card info"><div class="label">Fees this month (separate from balance)</div><div class="value">${fmtUSD(fees.net)}</div><div class="sub">SA fees owed: ${fmtUSD(fees.saFees)} · Player fees earned: ${fmtUSD(fees.playerFees)}</div></div>
+  </div>
+
+  ${(m.startingLossGainUSD||m.startingOwedToSuperAgentUSD||m.startingOwedBySuperAgentUSD||m.startingSAFeesUSD||m.startingCommissionFeesUSD) ? `
+  <div class="card">
+    <h3>Opening balances entered for ${escapeHtml(m.label)}</h3>
+    <div class="stat-row" style="margin-bottom:0;">
+      <div class="stat-card"><div class="label">Starting Loss/Gain</div><div class="value mono" style="font-size:18px;">${fmtUSD(m.startingLossGainUSD||0)}</div></div>
+      <div class="stat-card"><div class="label">Owed to Super Agent</div><div class="value mono" style="font-size:18px;">${fmtUSD(m.startingOwedToSuperAgentUSD||0)}</div></div>
+      <div class="stat-card"><div class="label">Super Agent owed you</div><div class="value mono" style="font-size:18px;">${fmtUSD(m.startingOwedBySuperAgentUSD||0)}</div></div>
+      <div class="stat-card"><div class="label">SA fees due</div><div class="value mono" style="font-size:18px;">${fmtUSD(m.startingSAFeesUSD||0)}</div></div>
+      <div class="stat-card"><div class="label">Commission fees due</div><div class="value mono" style="font-size:18px;">${fmtUSD(m.startingCommissionFeesUSD||0)}</div></div>
+    </div>
+  </div>` : ''}
+
+  <div class="card">
+    <h3>Player balances due <span class="field-note" style="display:inline">— combined across months by player name</span></h3>
+    ${players.length===0?`<div class="empty-state">No outstanding player deposits or cashouts right now.</div>`:`
+    <div class="table-wrap"><table>
+      <thead><tr><th>Player</th><th>Owes you (deposits)</th><th>You owe them (cashouts)</th><th>Net due</th><th>Last activity</th><th>Pending items</th></tr></thead>
+      <tbody>
+        ${players.map(p=>`<tr>
+          <td>${escapeHtml(p.displayName)}</td>
+          <td class="amt-cell">${p.owedToYou?fmtUSD(p.owedToYou):'—'}</td>
+          <td class="amt-cell">${p.owedByYou?fmtUSD(p.owedByYou):'—'}</td>
+          <td class="amt-cell ${p.net>=0?'amt-pos':'amt-neg'}">${p.net>=0?'They owe you ':'You owe them '}${fmtUSD(Math.abs(p.net))}</td>
+          <td>${p.lastDate}</td>
+          <td>${p.pendingCount}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`}
+  </div>
+
+  <div class="card">
+    <h3>Recent activity (all months)</h3>
+    ${recent.length===0?`<div class="empty-state">No transactions yet. Add one from Super Agent or Players.</div>`:`
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Type</th><th>Party</th><th>Method</th><th>Amount</th><th>Status</th><th>By</th></tr></thead>
+      <tbody>
+        ${recent.map(t=>renderTxRow(t, true)).join('')}
+      </tbody>
+    </table></div>`}
+  </div>`;
+}
+
+/* =========================================================================
+   SUPER AGENT / PLAYERS TX TAB
+   ========================================================================= */
+function renderTxTab(category){
+  const m = currentMonth();
+  const types = Object.entries(TX_TYPES).filter(([k,c])=>c.category===category);
+  const rows = txForMonth(m.id).filter(t=>TX_TYPES[t.type].category===category).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+
+  return `
+  <div class="card">
+    <h3>Add ${category==='superagent'?'Super Agent':'Player'} Transaction</h3>
+    <form onsubmit="submitTx(event,'${category}')">
+      <div class="form-grid">
+        <div class="field">
+          <label>Type</label>
+          <select id="tx_type" onchange="onTxTypeChange()">
+            ${types.map(([k,c])=>`<option value="${k}">${c.label}</option>`).join('')}
+          </select>
+        </div>
+        ${category==='player' ? `
+        <div class="field"><label>Player name</label><input id="tx_party" type="text" placeholder="e.g. Karim H." required></div>
+        <div class="field"><label>Platform</label><select id="tx_platform"><option value="Casino">Casino</option><option value="Poker">Poker</option></select></div>
+        ` : `<div class="field"><label>Counterparty</label><input type="text" value="${escapeHtml(state.settings.superAgentName)}" disabled></div>`}
+        <div class="field">
+          <label>Currency</label>
+          <select id="tx_currency" onchange="renderAmountFields()">
+            <option value="USD">USD</option>
+            <option value="LBP">LBP</option>
+          </select>
+        </div>
+        <div class="field"><label id="tx_amount_label">Amount (USD)</label><input id="tx_amount" type="number" step="0.01" min="0" required placeholder="0.00"></div>
+        <div class="field" id="tx_fxrate_field" style="display:none"><label>Exchange rate (LBP/USD)</label><input id="tx_fxrate" type="number" step="1" value="${state.settings.exchangeRate}"></div>
+        <div class="field"><label>Payment method</label>
+          <select id="tx_method">${PAYMENT_METHODS.map(pm=>`<option>${pm}</option>`).join('')}</select>
+        </div>
+        <div class="field" id="tx_fee_field"><label id="tx_fee_label">Fee %</label><input id="tx_fee" type="number" step="0.01" min="0" value="0"><div class="field-note">Tracked separately — never affects Agent Balance</div></div>
+        <div class="field"><label>Status</label>
+          <select id="tx_status"><option value="Not Paid">Not Paid</option><option value="Paid">Paid</option></select>
+        </div>
+        <div class="field"><label>Date</label><input id="tx_date" type="date" value="${todayStr()}"></div>
+        <div class="field full-row"><label>Notes (optional)</label><input id="tx_notes" type="text" placeholder="Any context for this transaction"></div>
+      </div>
+      <div class="inline-actions">
+        <button type="submit" class="btn btn-accent">Add transaction</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>${m.label} — ${category==='superagent'?'Super Agent':'Player'} ledger</h3>
+    ${rows.length===0?`<div class="empty-state">No ${category} transactions logged for this month yet.</div>`:`
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Type</th><th>${category==='player'?'Player':'Party'}</th>${category==='player'?'<th>Platform</th>':''}<th>Method</th><th>Currency</th><th>Fee (separate)</th><th>Amount (USD)</th><th>Balance effect</th><th>Settlement</th><th>By</th><th></th></tr></thead>
+      <tbody>${rows.map(t=>renderTxRow(t,false,category)).join('')}</tbody>
+    </table></div>`}
+  </div>`;
+}
+
+function renderTxRow(t, compact, category){
+  const cfg = TX_TYPES[t.type];
+  const effect = computeTxEffect(t);
+  const effDisplay = fmtUSD(effect);
+  if(compact){
+    return `<tr>
+      <td>${t.date}</td><td>${cfg.label}</td><td>${escapeHtml(t.party)}</td><td>${t.method}</td>
+      <td class="amt-cell">${fmtUSD(t.amountUSD)}</td>
+      <td><span class="stamp ${t.status==='Paid'?'paid':'notpaid'}" onclick="toggleStatus('${t.id}')">${t.status}</span></td>
+      <td>${escapeHtml(t.createdBy||'')}</td>
+    </tr>`;
+  }
+  return `<tr>
+    <td>${t.date}</td>
+    <td>${cfg.label}</td>
+    <td>${escapeHtml(t.party)}</td>
+    ${category==='player'?`<td><span class="tag-pill">${t.platform||'Casino'}</span></td>`:''}
+    <td><span class="tag-pill">${t.method}</span></td>
+    <td>${t.currency}${t.currency==='LBP'?`<div class="field-note">${fmtLBP(t.amountLBP)}</div>`:''}</td>
+    <td>${t.feePct?t.feePct+'% ('+fmtUSD(t.feeAmountUSD)+')':'—'}</td>
+    <td class="amt-cell">${fmtUSD(t.amountUSD)}</td>
+    <td class="amt-cell ${effect>=0?'amt-pos':'amt-neg'}">${effDisplay}</td>
+    <td><span class="stamp ${t.status==='Paid'?'paid':'notpaid'}" onclick="toggleStatus('${t.id}')">${t.status}</span></td>
+    <td>${escapeHtml(t.createdBy||'')}</td>
+    <td><button class="btn btn-ghost small-btn" onclick="deleteTx('${t.id}')">Delete</button></td>
+  </tr>`;
+}
+
+function onTxTypeChange(){
+  const type = document.getElementById('tx_type').value;
+  const cfg = TX_TYPES[type];
+  document.getElementById('tx_fee_field').style.display = cfg.hasFee ? '' : 'none';
+  if(cfg.hasFee) document.getElementById('tx_fee_label').textContent = cfg.feeLabel;
+}
+function renderAmountFields(){
+  const cur = document.getElementById('tx_currency').value;
+  document.getElementById('tx_amount_label').textContent = cur==='USD' ? 'Amount (USD)' : 'Amount (LBP)';
+  document.getElementById('tx_fxrate_field').style.display = cur==='LBP' ? '' : 'none';
+}
+
+async function submitTx(ev, category){
+  ev.preventDefault();
+  const type = document.getElementById('tx_type').value;
+  const cfg = TX_TYPES[type];
+  const currency = document.getElementById('tx_currency').value;
+  const rawAmount = parseFloat(document.getElementById('tx_amount').value || '0');
+  const fxRate = parseFloat(document.getElementById('tx_fxrate')?.value || state.settings.exchangeRate);
+  let amountUSD, amountLBP;
+  if(currency==='USD'){ amountUSD = rawAmount; amountLBP = rawAmount * fxRate; }
+  else { amountLBP = rawAmount; amountUSD = fxRate>0 ? rawAmount / fxRate : 0; }
+
+  const feePct = cfg.hasFee ? parseFloat(document.getElementById('tx_fee').value||'0') : 0;
+  const feeAmountUSD = amountUSD * feePct/100;
+
+  const party = category==='player' ? document.getElementById('tx_party').value.trim() : state.settings.superAgentName;
+  if(category==='player' && !party){ alert('Player name is required.'); return; }
+  const platform = category==='player' ? document.getElementById('tx_platform').value : null;
+
+  const tx = {
+    monthId: state.settings.currentMonthId,
+    type, party, platform,
+    currency, amountUSD, amountLBP, fxRateUsed: fxRate,
+    method: document.getElementById('tx_method').value,
+    feePct, feeAmountUSD,
+    status: document.getElementById('tx_status').value,
+    date: document.getElementById('tx_date').value || todayStr(),
+    notes: document.getElementById('tx_notes').value.trim(),
+    createdBy: currentUser ? (currentUser.displayName||currentUser.email) : '',
+    createdAt: Date.now()
+  };
+  await db.collection('transactions').add(tx);
+  flashSaved();
+}
+async function toggleStatus(id){
+  const t = state.transactions.find(x=>x.id===id);
+  if(!t) return;
+  await db.collection('transactions').doc(id).update({status: t.status==='Paid' ? 'Not Paid' : 'Paid'});
+  flashSaved();
+}
+async function deleteTx(id){
+  if(!confirm('Delete this transaction? This cannot be undone.')) return;
+  await db.collection('transactions').doc(id).delete();
+  flashSaved();
+}
+
+/* =========================================================================
+   CASHBACK & RAKEBACK
+   ========================================================================= */
+function renderCashback(){
+  const m = currentMonth();
+  const cbAmt = casinoCashbackAmount(m);
+  const history = Object.values(state.months).filter(mm=>mm.id!==m.id).sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
+
+  return `
+  <div class="section-tabs">
+    <button class="${cbSubTab==='casino'?'active':''}" onclick="cbSubTab='casino';render()">Casino Cashback</button>
+    <button class="${cbSubTab==='poker'?'active':''}" onclick="cbSubTab='poker';render()">Poker Rakeback</button>
+  </div>
+
+  ${cbSubTab==='casino' ? `
+  <div class="card">
+    <h3>Casino cashback — ${escapeHtml(m.label)}</h3>
+    <div class="field-note" style="margin-bottom:10px;">Auto-calculated from Casino-platform player transactions this month: <b>Loss/Gain = Casino deposits − Casino withdrawals</b> (a deposit is a loss for the player, a withdrawal is a gain). Log transactions on the Players tab with Platform = Casino to feed this.</div>
+    <div class="form-grid">
+      <div class="field"><label>Casino deposits (USD)</label><input type="text" value="${fmtUSD(txForMonth(m.id).filter(t=>t.type==='player_deposit'&&(t.platform||'Casino')==='Casino').reduce((s,t)=>s+t.amountUSD,0))}" disabled></div>
+      <div class="field"><label>Casino withdrawals (USD)</label><input type="text" value="${fmtUSD(txForMonth(m.id).filter(t=>t.type==='player_withdrawal'&&(t.platform||'Casino')==='Casino').reduce((s,t)=>s+t.amountUSD,0))}" disabled></div>
+      <div class="field"><label>Players' net loss/gain</label><input type="text" value="${fmtUSD(playerLossTotal(m.id,'Casino'))}" disabled></div>
+      <div class="field"><label>Cashback rate %</label><input type="number" step="0.1" value="${m.casinoCashbackRatePct}" onchange="updateMonthField('casinoCashbackRatePct', this.value, true)"></div>
+      <div class="field"><label>Computed cashback</label><input type="text" value="${fmtUSD(cbAmt)}" disabled></div>
+      <div class="field"><label>Status</label>
+        <select onchange="updateMonthField('casinoCashbackStatus', this.value)">
+          <option ${m.casinoCashbackStatus==='Not Paid'?'selected':''}>Not Paid</option>
+          <option ${m.casinoCashbackStatus==='Paid'?'selected':''}>Paid</option>
+        </select>
+      </div>
+      <div class="field"><label>Date received</label><input type="date" value="${m.casinoCashbackDate||''}" onchange="updateMonthField('casinoCashbackDate', this.value)"></div>
+    </div>
+    <div class="field-note" style="margin-top:10px;">Cashback rate is editable since the platform's rate can change month to month. Cashback = net loss × rate.</div>
+  </div>` : `
+  <div class="card">
+    <h3>Poker rakeback — ${escapeHtml(m.label)}</h3>
+    <div class="form-grid">
+      <div class="field"><label>Rakeback rate % (reference only)</label><input type="number" step="0.1" value="${m.pokerRakebackRatePct}" onchange="updateMonthField('pokerRakebackRatePct', this.value, true)"></div>
+      <div class="field"><label>Rakeback amount (USD) — set manually</label><input type="number" step="0.01" value="${m.pokerRakebackAmountUSD}" onchange="updateMonthField('pokerRakebackAmountUSD', this.value, true)"></div>
+      <div class="field"><label>Status</label>
+        <select onchange="updateMonthField('pokerRakebackStatus', this.value)">
+          <option ${m.pokerRakebackStatus==='Not Paid'?'selected':''}>Not Paid</option>
+          <option ${m.pokerRakebackStatus==='Paid'?'selected':''}>Paid</option>
+        </select>
+      </div>
+      <div class="field"><label>Date received</label><input type="date" value="${m.pokerRakebackDate||''}" onchange="updateMonthField('pokerRakebackDate', this.value)"></div>
+    </div>
+    <div class="field-note" style="margin-top:10px;">Per your process, rakeback isn't computed from a formula — you enter the exact figure the platform gives you when closing the month.</div>
+  </div>`}
+
+  <div class="card">
+    <h3>History — other months</h3>
+    ${history.length===0?`<div class="empty-state">No other months yet.</div>`:`
+    <div class="table-wrap"><table>
+      <thead><tr><th>Month</th><th>Casino net loss/gain</th><th>Cashback rate</th><th>Cashback amt</th><th>Cashback status</th><th>Rakeback amt</th><th>Rakeback status</th></tr></thead>
+      <tbody>
+        ${history.map(mm=>`<tr>
+          <td>${escapeHtml(mm.label)}</td>
+          <td class="amt-cell">${fmtUSD(playerLossTotal(mm.id,'Casino'))}</td>
+          <td>${mm.casinoCashbackRatePct}%</td>
+          <td class="amt-cell">${fmtUSD(casinoCashbackAmount(mm))}</td>
+          <td><span class="stamp ${mm.casinoCashbackStatus==='Paid'?'paid':'notpaid'}">${mm.casinoCashbackStatus}</span></td>
+          <td class="amt-cell">${fmtUSD(mm.pokerRakebackAmountUSD)}</td>
+          <td><span class="stamp ${mm.pokerRakebackStatus==='Paid'?'paid':'notpaid'}">${mm.pokerRakebackStatus}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`}
+  </div>`;
+}
+async function updateMonthField(field, value, isNumber){
+  await db.collection('months').doc(currentMonth().id).update({[field]: isNumber ? parseFloat(value||'0') : value});
+  flashSaved();
+}
+
+/* =========================================================================
+   MONTHS
+   ========================================================================= */
+function renderMonths(){
+  const months = Object.values(state.months).sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
+  return `
+  <div class="card">
+    <h3>Open a new month</h3>
+    <form onsubmit="submitNewMonth(event)">
+      <div class="form-grid">
+        <div class="field"><label>Label</label><input id="nm_label" type="text" value="${monthLabelNow()}" required></div>
+        <div class="field"><label>Start date</label><input id="nm_date" type="date" value="${todayStr()}"></div>
+        <div class="field"><label>Starting balance (USD)</label><input id="nm_balance" type="number" step="0.01" value="${monthBalance(state.settings.currentMonthId).toFixed(2)}"></div>
+        <div class="field"><label>Casino cashback rate %</label><input id="nm_cb_rate" type="number" step="0.1" value="${state.settings.casinoCashbackRatePct}"></div>
+        <div class="field"><label>Poker rakeback rate % (reference)</label><input id="nm_rb_rate" type="number" step="0.1" value="${state.settings.pokerRakebackRatePct}"></div>
+      </div>
+      <div class="field-note" style="margin:10px 0 16px;">Carryover amounts from real life that aren't already captured by logged transactions — leave at 0 if none. Player opening balances are added by name further down, so they show up correctly in reports.</div>
+      <div class="form-grid">
+        <div class="field"><label>Starting Loss/Gain (Casino)</label><input id="nm_loss_gain" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>You owe Super Agent (starting)</label><input id="nm_owe_sa" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Super Agent owes you (starting)</label><input id="nm_sa_owes_you" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Super Agent fees due (starting)</label><input id="nm_sa_fees" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Commission fees due (starting)</label><input id="nm_comm_fees" type="number" step="0.01" value="0"></div>
+      </div>
+      <button type="submit" class="btn btn-accent" style="margin-top:16px;">Open new month & make it active</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Opening player balances — ${escapeHtml(currentMonth().label)} <span class="field-note" style="display:inline">(active month)</span></h3>
+    <div class="field-note" style="margin-bottom:12px;">Add a starting balance per player by name — these are combined with all their other transactions in the Dashboard's Player Balances table and in the WhatsApp report.</div>
+    <form onsubmit="submitOpeningPlayerBalance(event)">
+      <div class="form-grid">
+        <div class="field"><label>Player name</label><input id="opb_name" type="text" placeholder="e.g. Karim H." required></div>
+        <div class="field"><label>He owes you</label><input id="opb_owes_you" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>You owe him</label><input id="opb_you_owe" type="number" step="0.01" value="0"></div>
+      </div>
+      <div class="inline-actions"><button type="submit" class="btn btn-accent">Add opening balance</button></div>
+    </form>
+    ${(currentMonth().openingPlayerBalances||[]).length===0?`<div class="empty-state">No opening player balances added for this month yet.</div>`:`
+    <div class="table-wrap" style="margin-top:16px;"><table>
+      <thead><tr><th>Player</th><th>He owes you</th><th>You owe him</th><th></th></tr></thead>
+      <tbody>
+        ${(currentMonth().openingPlayerBalances||[]).map(o=>`<tr>
+          <td>${escapeHtml(o.name)}</td>
+          <td class="amt-cell">${fmtUSD(o.owesYou)}</td>
+          <td class="amt-cell">${fmtUSD(o.youOwe)}</td>
+          <td><button class="btn btn-ghost small-btn" onclick="deleteOpeningPlayerBalance('${o.id}')">Delete</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`}
+  </div>
+
+  <div class="card">
+    <h3>All months</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Label</th><th>Start date</th><th>Start balance</th><th>Calculated balance</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        ${months.map(m=>`<tr>
+          <td>${escapeHtml(m.label)} ${m.id===state.settings.currentMonthId?'<span class="tag-pill">Active</span>':''}</td>
+          <td>${m.startDate}</td>
+          <td class="amt-cell">${fmtUSD(m.startBalanceUSD)}</td>
+          <td class="amt-cell">${fmtUSD(monthBalance(m.id))}</td>
+          <td><span class="stamp ${m.status==='open'?'paid':'notpaid'}">${m.status==='open'?'Open':'Closed'}</span></td>
+          <td>
+            ${m.id!==state.settings.currentMonthId?`<button class="btn btn-ghost small-btn" onclick="setActiveMonth('${m.id}')">Make active</button>`:''}
+            ${m.status==='open'?`<button class="btn btn-ghost small-btn" onclick="closeMonth('${m.id}')">Close month</button>`:`<button class="btn btn-ghost small-btn" onclick="reopenMonth('${m.id}')">Reopen</button>`}
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+async function submitNewMonth(ev){
+  ev.preventDefault();
+  const newMonth = {
+    label: document.getElementById('nm_label').value.trim() || monthLabelNow(),
+    startDate: document.getElementById('nm_date').value || todayStr(),
+    startBalanceUSD: parseFloat(document.getElementById('nm_balance').value||'0'),
+    status:'open',
+    casinoCashbackRatePct: parseFloat(document.getElementById('nm_cb_rate').value||'0'),
+    pokerRakebackRatePct: parseFloat(document.getElementById('nm_rb_rate').value||'0'),
+    casinoCashbackStatus:'Not Paid', casinoCashbackDate:'',
+    pokerRakebackAmountUSD:0, pokerRakebackStatus:'Not Paid', pokerRakebackDate:'',
+    startingLossGainUSD: parseFloat(document.getElementById('nm_loss_gain').value||'0'),
+    startingOwedToSuperAgentUSD: parseFloat(document.getElementById('nm_owe_sa').value||'0'),
+    startingOwedBySuperAgentUSD: parseFloat(document.getElementById('nm_sa_owes_you').value||'0'),
+    startingSAFeesUSD: parseFloat(document.getElementById('nm_sa_fees').value||'0'),
+    startingCommissionFeesUSD: parseFloat(document.getElementById('nm_comm_fees').value||'0'),
+    openingPlayerBalances: []
+  };
+  const ref = await db.collection('months').add(newMonth);
+  await db.collection('meta').doc('app').update({currentMonthId: ref.id});
+  flashSaved();
+}
+async function submitOpeningPlayerBalance(ev){
+  ev.preventDefault();
+  const m = currentMonth();
+  const name = document.getElementById('opb_name').value.trim();
+  if(!name){ alert('Player name is required.'); return; }
+  const newArray = (m.openingPlayerBalances||[]).concat([{
+    id: uid('opb'),
+    name,
+    owesYou: parseFloat(document.getElementById('opb_owes_you').value||'0'),
+    youOwe: parseFloat(document.getElementById('opb_you_owe').value||'0')
+  }]);
+  await db.collection('months').doc(m.id).update({openingPlayerBalances: newArray});
+  flashSaved();
+}
+async function deleteOpeningPlayerBalance(id){
+  const m = currentMonth();
+  const newArray = (m.openingPlayerBalances||[]).filter(o=>o.id!==id);
+  await db.collection('months').doc(m.id).update({openingPlayerBalances: newArray});
+  flashSaved();
+}
+async function setActiveMonth(id){
+  await db.collection('meta').doc('app').update({currentMonthId: id});
+  setTab('dashboard');
+}
+async function closeMonth(id){ await db.collection('months').doc(id).update({status:'closed'}); flashSaved(); }
+async function reopenMonth(id){ await db.collection('months').doc(id).update({status:'open'}); flashSaved(); }
+
+/* =========================================================================
+   WHATSAPP REPORT
+   ========================================================================= */
+function buildReportText(){
+  const m = currentMonth();
+  const comm = commissionDue(m.id);
+  const unpaidSA = txForMonth(m.id).filter(t=>t.type.startsWith('sa_') && t.status!=='Paid');
+  const fees = feesDue(m.id);
+
+  let lines = [];
+  lines.push(`*Ledger Report — ${m.label}*`);
+  lines.push(`As of ${new Date().toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})}`);
+  lines.push('');
+  lines.push(`*Loss/Gain Amount:* ${fmtUSD(playerLossTotal(m.id,'Casino'))} (Casino players' net loss/gain — deposits are losses, withdrawals are gains)`);
+  lines.push(`*Commission till today:* ${fmtUSD(comm.totalEarned)}  (Casino cashback ${fmtUSD(comm.cbAmt)} + Poker rakeback ${fmtUSD(comm.rbAmt)})`);
+  lines.push(`  — of which still unpaid: ${fmtUSD(comm.unpaid)}`);
+  lines.push(`*Fees due (settled separately, not in balance):* ${fmtUSD(fees.net)}  (SA fees you owe ${fmtUSD(fees.saFees)} · Player fees you earned ${fmtUSD(fees.playerFees)})`);
+  lines.push('');
+  lines.push(`*Transactions Due — Players*`);
+  const duePlayers = playerBalances().filter(p=>p.net!==0);
+  if(duePlayers.length===0){ lines.push('None'); }
+  else duePlayers.forEach(p=>{
+    const verb = p.net>=0 ? 'owes you' : 'you owe';
+    lines.push(`- ${p.displayName}: ${verb} ${fmtUSD(Math.abs(p.net))}`);
+  });
+  lines.push('');
+  lines.push(`*Transactions Due — ${state.settings.superAgentName}*`);
+  if(unpaidSA.length===0){ lines.push('None'); }
+  else unpaidSA.forEach(t=>{
+    const verb = t.type==='sa_deposit' ? 'you owe (top-up)' : 'owed to you (withdrawal)';
+    lines.push(`- ${verb}: ${fmtUSD(t.amountUSD)} (${t.date}, ${t.method})`);
+  });
+  lines.push('');
+  lines.push(`*Agent Balance:* ${fmtUSD(monthBalance(m.id))}`);
+  return lines.join('\n');
+}
+function renderReport(){
+  const text = buildReportText();
+  return `
+  <div class="card">
+    <h3>Shareable summary — ${escapeHtml(currentMonth().label)}</h3>
+    <div class="field-note" style="margin-bottom:10px;">Generated from this month's live data. Copy it or open it directly in WhatsApp.</div>
+    <textarea id="reportText" class="mono" style="width:100%;min-height:320px;padding:14px;border:1px solid var(--line);border-radius:4px;background:#FCFBF7;white-space:pre-wrap;line-height:1.6;" readonly>${escapeHtml(text)}</textarea>
+    <div class="inline-actions">
+      <button class="btn btn-accent" onclick="copyReport()">Copy text</button>
+      <a class="btn btn-ghost" style="text-decoration:none;display:inline-flex;align-items:center;" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank">Open in WhatsApp</a>
+    </div>
+  </div>`;
+}
+function copyReport(){
+  const ta = document.getElementById('reportText');
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(()=>{ flashSaved(); }).catch(()=>{ document.execCommand('copy'); });
+}
+
+/* =========================================================================
+   SETTINGS
+   ========================================================================= */
+function renderSettings(){
+  const s = state.settings;
+  return `
+  <div class="card">
+    <h3>General</h3>
+    <div class="form-grid">
+      <div class="field"><label>Exchange rate (LBP per 1 USD)</label><input type="number" value="${s.exchangeRate}" onchange="updateSetting('exchangeRate', this.value, true)"></div>
+      <div class="field"><label>Super Agent display name</label><input type="text" value="${escapeHtml(s.superAgentName)}" onchange="updateSetting('superAgentName', this.value)"></div>
+      <div class="field"><label>Default casino cashback rate %</label><input type="number" step="0.1" value="${s.casinoCashbackRatePct}" onchange="updateSetting('casinoCashbackRatePct', this.value, true)"></div>
+      <div class="field"><label>Default poker rakeback rate %</label><input type="number" step="0.1" value="${s.pokerRakebackRatePct}" onchange="updateSetting('pokerRakebackRatePct', this.value, true)"></div>
+    </div>
+    <div class="field-note" style="margin-top:8px;">These are defaults applied when opening a new month — each month can still override them.</div>
+  </div>
+
+  <div class="card">
+    <h3>Your account</h3>
+    <div class="form-grid">
+      <div class="field"><label>Name</label><input type="text" value="${escapeHtml(currentUser.displayName||'')}" disabled></div>
+      <div class="field"><label>Email</label><input type="text" value="${escapeHtml(currentUser.email||'')}" disabled></div>
+    </div>
+    <div class="field-note" style="margin-top:8px;">To add or remove teammates, open the Firebase console for this project → Authentication → Users. There's no self-signup screen here on purpose, so only people you've explicitly added can log in.</div>
+  </div>
+
+  <div class="card danger-zone">
+    <h3 style="color:var(--red)">Reset all data</h3>
+    <p style="font-size:13px;color:var(--slate);">Permanently deletes every month and transaction for everyone and starts fresh. This cannot be undone.</p>
+    <button class="btn" style="background:var(--red)" onclick="resetAll()">Reset all data</button>
+  </div>`;
+}
+async function updateSetting(field, value, isNumber){
+  await db.collection('meta').doc('app').update({[field]: isNumber ? parseFloat(value||'0') : value});
+  flashSaved();
+}
+async function resetAll(){
+  if(!confirm('This will permanently erase all months and transactions for everyone. Continue?')) return;
+  const txSnap = await db.collection('transactions').get();
+  const monthSnap = await db.collection('months').get();
+  const batchDeletes = [];
+  txSnap.forEach(d=>batchDeletes.push(d.ref.delete()));
+  monthSnap.forEach(d=>batchDeletes.push(d.ref.delete()));
+  await Promise.all(batchDeletes);
+  await db.collection('meta').doc('app').set(defaultSettings());
+  flashSaved();
+}
+</script>
+</body>
+</html>
