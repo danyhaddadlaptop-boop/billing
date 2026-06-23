@@ -503,7 +503,7 @@ function attachListeners(){
   db.ref('saTransactions').on('value', snap=>{ saTxns = snapToArray(snap); renderSa(); renderDashboard(); });
   db.ref('archivedPeriods').on('value', snap=>{ archivedPeriods = snapToArray(snap); renderArchive(); renderPeriodFilterOptions(); renderDashboard(); });
   db.ref('meta/currentPeriod').on('value', snap=>{ currentPeriod = snap.val(); renderDashboard(); renderPeriodFilterOptions(); maybeShowApp(); });
-  db.ref('meta/settings').on('value', snap=>{ if(snap.val()) settings = snap.val(); populateSettingsForm(); });
+  db.ref('meta/settings').on('value', snap=>{ if(snap.val()) settings = snap.val(); populateSettingsForm(); renderDashboard(); });
   db.ref('meta/setupDone').on('value', snap=>{ setupDoneFlag = !!snap.val(); maybeShowApp(); });
 }
 function detachListeners(){
@@ -878,7 +878,7 @@ function computeTotals(periodId){
   const openingAdj = isCurrent ? (currentPeriod.openingAdjustment||0) : 0;
   const openingGainLoss = isCurrent ? (currentPeriod.openingGainLoss||0) : 0;
 
-  const agentBalance = openingAdj + playerDeposits - playerWithdrawNet + saDeposits - saWithdrawals;
+  const agentBalance = openingAdj - playerDeposits + playerWithdrawNet + saDeposits - saWithdrawals;
   const gainLoss = openingGainLoss + saDeposits - saWithdrawals;
   const commission = gainLoss>0 ? gainLoss*settings.commissionPercent/100 : 0;
 
