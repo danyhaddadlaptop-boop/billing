@@ -950,7 +950,6 @@ function copyReport(){
   rows.forEach(r=>{
     if(r.out<0){ owedToYou += -r.out; lines.push(`✅ ${r.name}: owes you ${fmt(-r.out)}`); }
     else if(r.out>0){ youOwe += r.out; lines.push(`🔴 ${r.name}: you owe ${fmt(r.out)}`); }
-    else { lines.push(`⚪ ${r.name}: settled`); }
   });
   lines.push('');
   lines.push('——————————');
