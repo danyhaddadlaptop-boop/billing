@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14171c; --panel:#1b1f26; --panel-light:#232834; --line:#2c323e;
+    --text:#e9e7e1; --text-dim:#8b909c;
+    --green:#34c98f; --red:#e2685c; --amber:#e0a440; --blue:#5b9bd8;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;}
+  .num{font-family:'IBM Plex Mono',monospace; font-variant-numeric: tabular-nums; letter-spacing:0.2px;}
+
+  .overlay{position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:34px 32px; width:380px;}
+  .card h1{font-family:'Spectral',serif; font-size:23px; margin:0 0 4px 0; text-align:center;}
+  .card p.sub{color:var(--text-dim); font-size:12.5px; margin:0 0 20px 0; text-align:center;}
+  .card input, .card select{width:100%; margin-bottom:12px;}
+  .card button.btn{width:100%;}
+  #login-error, #setup-error{color:var(--red); font-size:12px; min-height:14px; margin-top:2px; text-align:center;}
+  .note{font-size:11px; color:var(--text-dim); margin-top:16px; line-height:1.5; text-align:left; border-top:1px solid var(--line); padding-top:12px;}
+
+  #setup-overlay .card{width:560px; max-height:88vh; overflow-y:auto;}
+  #setup-overlay h2{font-family:'Spectral',serif; font-size:16px; margin:18px 0 10px 0;}
+  .wiz-row{display:flex; gap:10px; margin-bottom:10px; align-items:flex-end; flex-wrap:wrap;}
+  .wiz-field{display:flex; flex-direction:column; gap:4px; flex:1; min-width:110px;}
+  .wiz-field label{font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.4px;}
+  .outstanding-row{display:flex; gap:8px; margin-bottom:8px; align-items:center;}
+  .outstanding-row input{margin-bottom:0;}
+  .outstanding-row select{margin-bottom:0; flex:0 0 150px;}
+  .outstanding-row button{flex:0 0 auto; background:none; border:none; color:var(--red); cursor:pointer; font-size:15px;}
+  .commission-preview{background:var(--panel-light); border-radius:4px; padding:8px 12px; font-size:12.5px; margin-bottom:14px;}
+
+  #app{display:none;}
+  header{padding:22px 32px 0 32px; border-bottom:1px solid var(--line);}
+  .header-top{display:flex; justify-content:space-between; align-items:flex-start;}
+  header h1{font-family:'Spectral',serif; font-weight:700; font-size:27px; margin:0 0 2px 0;}
+  header p{color:var(--text-dim); margin:0 0 18px 0; font-size:13px;}
+  .header-right{display:flex; align-items:center; gap:14px; font-size:12px; color:var(--text-dim);}
+  .conn-dot{width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:5px; background:var(--amber);}
+  .conn-dot.on{background:var(--green);}
+  .logout-link{color:var(--text-dim); cursor:pointer; text-decoration:underline; font-size:12px;}
+  nav{display:flex; gap:4px; flex-wrap:wrap;}
+  nav button.navbtn{background:none; border:none; color:var(--text-dim); padding:10px 16px; font-size:13.5px; font-weight:500; cursor:pointer; border-bottom:2px solid transparent;}
+  nav button.navbtn:hover{color:var(--text);}
+  nav button.navbtn.active{color:var(--text); border-bottom:2px solid var(--green);}
+  main{padding:28px 32px 60px 32px; max-width:1180px; margin:0 auto;}
+  .page{display:none;} .page.active{display:block;}
+
+  .kpi-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px;}
+  .kpi{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:16px 18px; position:relative; overflow:hidden;}
+  .kpi::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--line);}
+  .kpi.green::before{background:var(--green);} .kpi.red::before{background:var(--red);}
+  .kpi.blue::before{background:var(--blue);} .kpi.amber::before{background:var(--amber);}
+  .kpi .label{font-size:11.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:8px;}
+  .kpi .value{font-size:24px; font-weight:600;}
+  .kpi .sub{font-size:11.5px; color:var(--text-dim); margin-top:4px;}
+
+  .period-bar{display:flex; justify-content:space-between; align-items:center; background:var(--panel-light); border:1px solid var(--line); border-radius:6px; padding:10px 16px; margin-bottom:18px; font-size:13px;}
+  .tag-period{font-weight:600; color:var(--blue);}
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:20px; margin-bottom:20px;}
+  .panel h2{font-family:'Spectral',serif; font-size:17px; margin:0 0 16px 0; font-weight:600;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:14px;}
+  .field{display:flex; flex-direction:column; gap:5px;}
+  .field label{font-size:11.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.4px;}
+  input, select{background:var(--panel-light); border:1px solid var(--line); color:var(--text); padding:8px 10px; border-radius:4px; font-size:13.5px; font-family:'Inter',sans-serif; min-width:140px;}
+  input[type="number"]{font-family:'IBM Plex Mono',monospace;}
+  input:focus, select:focus{outline:none; border-color:var(--blue);}
+  .checkbox-field{flex-direction:row; align-items:center; gap:7px;}
+  .checkbox-field input{width:16px; height:16px; min-width:auto;}
+  button.btn{background:var(--green); color:#0c1410; border:none; padding:9px 16px; border-radius:4px; font-weight:600; font-size:13px; cursor:pointer;}
+  button.btn:hover{opacity:0.88;}
+  button.btn.secondary{background:var(--panel-light); color:var(--text); border:1px solid var(--line);}
+  button.btn.danger{background:transparent; color:var(--red); border:1px solid var(--red);}
+  button.btn.amber{background:var(--amber); color:#1c1408;}
+  button.btn.blue{background:var(--blue); color:#0c1722;}
+  button.btn.small{padding:5px 10px; font-size:11.5px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-dim); padding:8px 10px; border-bottom:1px solid var(--line); font-weight:500;}
+  td{padding:9px 10px; border-bottom:1px solid var(--line);}
+  tr:last-child td{border-bottom:none;}
+  .amt-pos{color:var(--green);} .amt-neg{color:var(--red);}
+  .badge{display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; cursor:pointer; user-select:none; border:1px solid transparent;}
+  .badge.paid{background:rgba(52,201,143,0.12); color:var(--green); border-color:rgba(52,201,143,0.3);}
+  .badge.notpaid{background:rgba(224,164,64,0.12); color:var(--amber); border-color:rgba(224,164,64,0.3);}
+  .tag{font-size:11px; padding:2px 7px; border-radius:4px; font-weight:600;}
+  .tag.dep{background:rgba(91,155,216,0.12); color:var(--blue);}
+  .tag.wd{background:rgba(226,104,92,0.12); color:var(--red);}
+  .empty{color:var(--text-dim); font-size:13px; padding:18px 0; text-align:center;}
+  .helptext{font-size:12px; color:var(--text-dim); margin-top:-4px; margin-bottom:14px;}
+  .player-list{display:flex; flex-wrap:wrap; gap:8px;}
+  .player-chip{background:var(--panel-light); border:1px solid var(--line); border-radius:5px; padding:8px 12px; font-size:13px; display:flex; align-items:center; gap:10px;}
+  .player-chip button{background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:13px;}
+  .player-chip button:hover{color:var(--red);}
+  .right{text-align:right;}
+  .topline{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;}
+  .footnote{font-size:11.5px; color:var(--text-dim); margin-top:6px;}
+  .close-month-form{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);}
+  .close-month-form.open{display:block;}
+  .details-link{font-size:11.5px; color:var(--blue); cursor:pointer; text-decoration:underline;}
+  .archive-details{background:var(--panel-light); border-radius:4px; padding:10px 14px; margin:6px 0 10px 0; font-size:12.5px;}
+  #copy-feedback{font-size:12px; color:var(--green); margin-left:10px; opacity:0; transition:opacity .2s;}
+  #copy-feedback.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="login-overlay">
+  <div class="card">
+    <h1>Agent Ledger</h1>
+    <p class="sub">Sign in to continue</p>
+    <input type="text" id="login-username" placeholder="Username (email)" autocomplete="username">
+    <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter') tryLogin()">
+    <button class="btn" onclick="tryLogin()">Sign In</button>
+    <div id="login-error"></div>
+    <div class="note">Username must be the email you created for this account in Firebase Authentication. Ask whoever set up the project if you don't have one yet.</div>
+  </div>
+</div>
+
+<div class="overlay" id="setup-overlay" style="display:none;">
+  <div class="card">
+    <h1 style="font-size:20px;">Set Up Your First Month</h1>
+    <p class="sub">This only happens once. You can adjust rates later in Settings.</p>
+
+    <h2>Starting figures</h2>
+    <div class="wiz-row">
+      <div class="wiz-field"><label>Period label</label><input id="wiz-period-label"></div>
+      <div class="wiz-field"><label>Starting agent balance</label><input type="number" id="wiz-agent-balance" step="0.01" value="0"></div>
+    </div>
+    <div class="wiz-row">
+      <div class="wiz-field"><label>Starting gain/loss</label><input type="number" id="wiz-gainloss" step="0.01" value="0" oninput="updateWizCommissionPreview()"></div>
+      <div class="wiz-field"><label>Withdrawal fee %</label><input type="number" id="wiz-fee" step="0.01" value="5"></div>
+      <div class="wiz-field"><label>Commission %</label><input type="number" id="wiz-commission" step="0.01" value="10" oninput="updateWizCommissionPreview()"></div>
+    </div>
+    <div class="commission-preview" id="wiz-commission-preview">Commission on starting gain/loss: $0.00</div>
+
+    <h2>Outstanding payments (optional)</h2>
+    <p class="helptext" style="margin-top:-6px;">Add any players who already owe you, or who you already owe, before you started using this app.</p>
+    <div id="wiz-outstanding-rows"></div>
+    <button class="btn secondary small" onclick="addWizOutstandingRow()">+ Add player</button>
+
+    <div style="margin-top:22px;">
+      <button class="btn" onclick="submitSetup()">Create Month & Start</button>
+    </div>
+    <div id="setup-error"></div>
+  </div>
+</div>
+
+<div class="overlay" id="player-detail-overlay" style="display:none;" onclick="if(event.target===this) closePlayerDetail()">
+  <div class="card" style="width:560px; max-height:84vh; overflow-y:auto;">
+    <h1 style="font-size:20px;" id="pd-name"></h1>
+    <div class="kpi-grid" style="grid-template-columns:1fr 1fr; margin-bottom:18px;">
+      <div class="kpi" id="pd-kpi"><div class="label">Outstanding</div><div class="value num" id="pd-amount">$0.00</div><div class="sub" id="pd-status"></div></div>
+      <div class="kpi blue"><div class="label">Transactions</div><div class="value num" id="pd-count">0</div><div class="sub">All time</div></div>
+    </div>
+    <h2>History</h2>
+    <table>
+      <thead><tr><th>Date</th><th>Type</th><th class="right">Net</th><th>Status</th></tr></thead>
+      <tbody id="pd-history"></tbody>
+    </table>
+    <div class="empty" id="pd-empty" style="display:none;">No transactions yet.</div>
+    <div style="margin-top:18px;"><button class="btn secondary" onclick="closePlayerDetail()">Close</button></div>
+  </div>
+</div>
+
+<div id="app">
+
+<header>
+  <div class="header-top">
+    <div>
+      <h1>Agent Ledger</h1>
+      <p>Player & super-agent accounting</p>
+    </div>
+    <div class="header-right">
+      <span><span class="conn-dot" id="conn-dot"></span><span id="conn-text">Connecting…</span></span>
+      <span id="logged-in-as"></span>
+      <span style="opacity:0.6;">· project: betarabia-accounting</span>
+      <span class="logout-link" onclick="doLogout()">Sign out</span>
+    </div>
+  </div>
+  <nav>
+    <button class="navbtn active" data-page="dashboard">Dashboard</button>
+    <button class="navbtn" data-page="players">Players</button>
+    <button class="navbtn" data-page="transactions">Transactions</button>
+    <button class="navbtn" data-page="sa">Super Agent</button>
+    <button class="navbtn" data-page="archive">Archive</button>
+    <button class="navbtn" data-page="settings">Settings</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="period-bar">
+      <div>Current period: <span class="tag-period" id="period-label-display"></span></div>
+      <button class="btn amber small" onclick="toggleCloseMonthForm()">Close Month</button>
+    </div>
+
+    <div class="panel close-month-form" id="close-month-form">
+      <h2>Close Current Month</h2>
+      <p class="helptext">This archives the current period's Agent Balance, Gain/Loss, Commission and Fees, then starts a new period. Outstanding player balances are not affected and will keep showing in the report below.</p>
+      <div class="row">
+        <div class="field"><label>New period label</label><input id="new-period-label"></div>
+        <div class="field"><label>Opening balance adjustment</label><input type="number" id="opening-adjustment" step="0.01" value="0"></div>
+        <button class="btn" onclick="closeMonth()">Confirm & Close</button>
+        <button class="btn secondary" onclick="toggleCloseMonthForm()">Cancel</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi" id="kpi-balance"><div class="label">Agent Cash Balance</div><div class="value num" id="val-balance">$0.00</div><div class="sub">This period only</div></div>
+      <div class="kpi" id="kpi-gainloss"><div class="label">Gain / Loss Balance</div><div class="value num" id="val-gainloss">$0.00</div><div class="sub">SA deposits − SA withdrawals</div></div>
+      <div class="kpi" id="kpi-commission"><div class="label">Commission Earned</div><div class="value num" id="val-commission">$0.00</div><div class="sub">% on played-money gain only</div></div>
+      <div class="kpi" id="kpi-fees"><div class="label">Fees Collected</div><div class="value num" id="val-fees">$0.00</div><div class="sub">% on player withdrawals</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="topline">
+        <h2 style="margin:0;">Player Balances</h2>
+        <div style="display:flex; gap:18px; align-items:center; font-size:12.5px; color:var(--text-dim);">
+          <span>Owed to you: <span class="num amt-pos" id="sum-owed-to-you">$0.00</span></span>
+          <span>You owe: <span class="num amt-neg" id="sum-you-owe">$0.00</span></span>
+          <button class="btn blue small" onclick="copyReport()">Copy report</button>
+          <span id="copy-feedback">Copied!</span>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Player</th><th class="right">Outstanding</th><th>Status</th></tr></thead>
+        <tbody id="tbl-player-balances"></tbody>
+      </table>
+      <div class="empty" id="empty-balances" style="display:none;">No players yet — add some on the Players page.</div>
+      <div class="footnote">Based on unpaid transactions only, across all periods — closing a month never clears this.</div>
+    </div>
+  </div>
+
+  <!-- PLAYERS -->
+  <div class="page" id="page-players">
+    <div class="panel">
+      <h2>Add Player</h2>
+      <div class="row">
+        <div class="field"><label>Player name</label><input id="new-player-name" onkeydown="if(event.key==='Enter') addPlayer()"></div>
+        <button class="btn" id="add-player-btn" onclick="addPlayer()">Add Player</button>
+      </div>
+      <div id="add-player-status" style="font-size:12px; margin-top:-6px; margin-bottom:6px;"></div>
+    </div>
+    <div class="panel">
+      <h2>All Players (<span id="player-count">0</span>)</h2>
+      <div class="player-list" id="player-list"></div>
+      <div class="empty" id="empty-players" style="display:none;">No players added yet.</div>
+    </div>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  <div class="page" id="page-transactions">
+    <div class="panel">
+      <h2>New Player Transaction</h2>
+      <div class="row">
+        <div class="field"><label>Player</label><select id="txn-player"></select></div>
+        <div class="field"><label>Type</label>
+          <select id="txn-type" onchange="onTxnTypeChange()">
+            <option value="deposit">Deposit (player pays in)</option>
+            <option value="withdraw">Withdraw (you pay out)</option>
+          </select>
+        </div>
+        <div class="field"><label>Amount</label><input type="number" id="txn-amount" placeholder="0.00" min="0" step="0.01"></div>
+        <div class="field" id="fee-field"><label>Fee %</label><input type="number" id="txn-fee" min="0" step="0.01"></div>
+        <div class="field"><label>Date</label><input type="date" id="txn-date"></div>
+        <div class="field checkbox-field"><input type="checkbox" id="txn-paid"><label style="text-transform:none;">Mark as paid</label></div>
+        <button class="btn" onclick="addTxn()">Add Transaction</button>
+      </div>
+      <div class="helptext" id="fee-preview"></div>
+    </div>
+
+    <div class="panel">
+      <div class="topline">
+        <h2 style="margin:0;">Transaction History</h2>
+        <div style="display:flex; gap:8px;">
+          <select id="txn-filter" onchange="renderTransactions()" style="min-width:160px;"></select>
+          <select id="period-filter" onchange="renderTransactions()" style="min-width:160px;"></select>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Date</th><th>Player</th><th>Period</th><th>Type</th><th class="right">Amount</th><th class="right">Fee</th><th class="right">Net</th><th>Status</th><th></th></tr></thead>
+        <tbody id="tbl-transactions"></tbody>
+      </table>
+      <div class="empty" id="empty-txns" style="display:none;">No transactions logged yet.</div>
+    </div>
+  </div>
+
+  <!-- SUPER AGENT -->
+  <div class="page" id="page-sa">
+    <div class="panel">
+      <h2>New Super Agent Transaction</h2>
+      <div class="row">
+        <div class="field"><label>Type</label>
+          <select id="sa-type">
+            <option value="deposit">Deposit to SA</option>
+            <option value="withdraw">Withdraw from SA</option>
+          </select>
+        </div>
+        <div class="field"><label>Amount</label><input type="number" id="sa-amount" placeholder="0.00" min="0" step="0.01"></div>
+        <div class="field"><label>Date</label><input type="date" id="sa-date"></div>
+        <button class="btn" onclick="addSaTxn()">Add Transaction</button>
+      </div>
+      <div class="helptext">Deposit = money you send to the super agent. Withdraw = money the super agent pays you. Counted toward the current period.</div>
+    </div>
+    <div class="panel">
+      <h2>Super Agent History</h2>
+      <table>
+        <thead><tr><th>Date</th><th>Period</th><th>Type</th><th class="right">Amount</th><th></th></tr></thead>
+        <tbody id="tbl-sa"></tbody>
+      </table>
+      <div class="empty" id="empty-sa" style="display:none;">No super agent activity yet.</div>
+    </div>
+  </div>
+
+  <!-- ARCHIVE -->
+  <div class="page" id="page-archive">
+    <div class="panel">
+      <h2>Closed Months</h2>
+      <p class="helptext">Each closed month is archived here. Commission is shown by default — click "details" for the full snapshot.</p>
+      <table>
+        <thead><tr><th>Period</th><th>Closed</th><th class="right">Commission</th><th></th></tr></thead>
+        <tbody id="tbl-archive"></tbody>
+      </table>
+      <div class="empty" id="empty-archive" style="display:none;">No months closed yet.</div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="panel">
+      <h2>Default Rates</h2>
+      <div class="row">
+        <div class="field"><label>Default withdrawal fee %</label><input type="number" id="set-fee" min="0" step="0.01"></div>
+        <div class="field"><label>Commission % on played-money gain</label><input type="number" id="set-commission" min="0" step="0.01"></div>
+        <button class="btn" onclick="saveSettings()">Save</button>
+      </div>
+      <div class="helptext">
+        The withdrawal fee is deducted from what the player receives, and the leftover stays with you as collected fees.<br>
+        The commission only applies when SA deposits exceed SA withdrawals (a net gain) for the period.<br>
+        Changing these only affects new transactions — past entries keep the rate they were created with.
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Account</h2>
+      <p class="helptext">Usernames and passwords are managed in Firebase Authentication, not inside this app. To add or change a login, go to the Firebase console → Authentication → Users.</p>
+    </div>
+    <div class="panel">
+      <h2>Danger Zone</h2>
+      <button class="btn danger" onclick="resetAll()">Clear all data</button>
+      <div class="footnote">This permanently deletes every player, transaction and archived month from the database.</div>
+    </div>
+    <div class="panel">
+      <h2>Debug Info <span style="font-size:11px; color:var(--text-dim); font-weight:400;">(temporary — for troubleshooting)</span></h2>
+      <p class="helptext">This shows exactly what's stored under <code>players</code> in your Firebase database right now, live.</p>
+      <pre id="debug-json" style="background:var(--panel-light); padding:12px; border-radius:4px; font-size:11.5px; overflow-x:auto; white-space:pre-wrap; word-break:break-all;"></pre>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+// ---------- firebase init ----------
+const firebaseConfig = {
+  apiKey: "AIzaSyCM3leODE-85xJ6zu6T-nVUFV3Wwch6Zf0",
+  authDomain: "betarabia-accounting.firebaseapp.com",
+  databaseURL: "https://betarabia-accounting-default-rtdb.firebaseio.com",
+  projectId: "betarabia-accounting",
+  storageBucket: "betarabia-accounting.firebasestorage.app",
+  messagingSenderId: "164806613601",
+  appId: "1:164806613601:web:5fa54ca2af9e67a4ed2820"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+// ---------- local cache ----------
+let players = [];
+let txns = [];
+let saTxns = [];
+let archivedPeriods = [];
+let currentPeriod = null;
+let settings = { feePercent: 5, commissionPercent: 10 };
+let setupDoneFlag = false;
+let listenersAttached = false;
+
+function snapToArray(snap){
+  const out = [];
+  snap.forEach(child => { out.push(Object.assign({id: child.key}, child.val())); });
+  return out;
+}
+
+function fmt(n){
+  const v = Number(n)||0;
+  const sign = v<0 ? '-' : '';
+  return sign + '$' + Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function todayStr(){ return new Date().toISOString().split('T')[0]; }
+function monthLabel(date){ return date.toLocaleString('default',{month:'long', year:'numeric'}); }
+
+// ---------- auth ----------
+function tryLogin(){
+  const u = document.getElementById('login-username').value.trim();
+  const p = document.getElementById('login-password').value;
+  document.getElementById('login-error').textContent = '';
+  if(!u || !p){ document.getElementById('login-error').textContent = 'Enter username and password.'; return; }
+  auth.signInWithEmailAndPassword(u, p).catch(err=>{
+    document.getElementById('login-error').textContent = err.message;
+  });
+}
+function doLogout(){
+  auth.signOut();
+}
+
+auth.onAuthStateChanged(user=>{
+  if(user){
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('logged-in-as').textContent = user.email;
+    attachListeners();
+  } else {
+    detachListeners();
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('setup-overlay').style.display = 'none';
+    document.getElementById('login-overlay').style.display = 'flex';
+    document.getElementById('login-password').value = '';
+  }
+});
+
+// connection status
+db.ref('.info/connected').on('value', snap=>{
+  const on = snap.val()===true;
+  document.getElementById('conn-dot').classList.toggle('on', on);
+  document.getElementById('conn-text').textContent = on ? 'Synced' : 'Connecting…';
+});
+
+// ---------- realtime listeners ----------
+function attachListeners(){
+  if(listenersAttached) return;
+  listenersAttached = true;
+  db.ref('players').on('value', snap=>{
+    players = snapToArray(snap);
+    const dbg = document.getElementById('debug-json');
+    if(dbg) dbg.textContent = JSON.stringify(snap.val(), null, 2);
+    renderPlayers(); renderTxnPlayerOptions(); renderDashboard();
+  });
+  db.ref('transactions').on('value', snap=>{ txns = snapToArray(snap); renderTransactions(); renderDashboard(); });
+  db.ref('saTransactions').on('value', snap=>{ saTxns = snapToArray(snap); renderSa(); renderDashboard(); });
+  db.ref('archivedPeriods').on('value', snap=>{ archivedPeriods = snapToArray(snap); renderArchive(); renderPeriodFilterOptions(); renderDashboard(); });
+  db.ref('meta/currentPeriod').on('value', snap=>{ currentPeriod = snap.val(); renderDashboard(); renderPeriodFilterOptions(); maybeShowApp(); });
+  db.ref('meta/settings').on('value', snap=>{ if(snap.val()) settings = snap.val(); populateSettingsForm(); });
+  db.ref('meta/setupDone').on('value', snap=>{ setupDoneFlag = !!snap.val(); maybeShowApp(); });
+}
+function detachListeners(){
+  if(!listenersAttached) return;
+  listenersAttached = false;
+  db.ref('players').off();
+  db.ref('transactions').off();
+  db.ref('saTransactions').off();
+  db.ref('archivedPeriods').off();
+  db.ref('meta/currentPeriod').off();
+  db.ref('meta/settings').off();
+  db.ref('meta/setupDone').off();
+}
+
+function maybeShowApp(){
+  if(currentPeriod===null && !setupDoneFlag){
+    // give the setupDone read a moment before deciding — once it resolves we'll know for sure
+  }
+  if(setupDoneFlag && currentPeriod){
+    document.getElementById('setup-overlay').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  } else if(!setupDoneFlag){
+    document.getElementById('app').style.display = 'none';
+    openSetupWizard();
+  }
+}
+
+// ---------- nav ----------
+document.querySelectorAll('nav button.navbtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav button.navbtn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-'+btn.dataset.page).classList.add('active');
+    if(btn.dataset.page==='dashboard') renderDashboard();
+    if(btn.dataset.page==='transactions') renderTransactions();
+    if(btn.dataset.page==='archive') renderArchive();
+  });
+});
+
+// ---------- setup wizard ----------
+function openSetupWizard(){
+  document.getElementById('setup-overlay').style.display = 'flex';
+  document.getElementById('wiz-period-label').value = monthLabel(new Date());
+  document.getElementById('wiz-outstanding-rows').innerHTML = '';
+  updateWizCommissionPreview();
+}
+
+function addWizOutstandingRow(){
+  const row = document.createElement('div');
+  row.className = 'outstanding-row';
+  row.innerHTML = `
+    <input placeholder="Player name" class="wiz-out-name">
+    <input type="number" placeholder="Amount" step="0.01" class="wiz-out-amount">
+    <select class="wiz-out-dir">
+      <option value="owesyou">They owe you</option>
+      <option value="youowe">You owe them</option>
+    </select>
+    <button onclick="this.parentElement.remove()" title="Remove">✕</button>
+  `;
+  document.getElementById('wiz-outstanding-rows').appendChild(row);
+}
+
+function updateWizCommissionPreview(){
+  const gl = parseFloat(document.getElementById('wiz-gainloss').value)||0;
+  const comm = parseFloat(document.getElementById('wiz-commission').value)||0;
+  const commission = gl>0 ? gl*comm/100 : 0;
+  document.getElementById('wiz-commission-preview').textContent =
+    `Commission on starting gain/loss: ${fmt(commission)}` + (gl<=0 ? ' (no commission — net loss or zero)' : '');
+}
+
+function submitSetup(){
+  const label = document.getElementById('wiz-period-label').value.trim() || monthLabel(new Date());
+  const agentBalance = parseFloat(document.getElementById('wiz-agent-balance').value)||0;
+  const gainLoss = parseFloat(document.getElementById('wiz-gainloss').value)||0;
+  const feePercent = parseFloat(document.getElementById('wiz-fee').value)||0;
+  const commissionPercent = parseFloat(document.getElementById('wiz-commission').value)||0;
+
+  const newPeriod = { id: Date.now().toString(), label, openingAdjustment: agentBalance, openingGainLoss: gainLoss };
+  const newSettings = { feePercent, commissionPercent };
+
+  const rows = document.querySelectorAll('#wiz-outstanding-rows .outstanding-row');
+  const writes = [];
+  const today = todayStr();
+  rows.forEach(row=>{
+    const name = row.querySelector('.wiz-out-name').value.trim();
+    const amount = parseFloat(row.querySelector('.wiz-out-amount').value);
+    const dir = row.querySelector('.wiz-out-dir').value;
+    if(!name || !amount || amount<=0) return;
+    const playerRef = db.ref('players').push();
+    writes.push(playerRef.set({name}));
+    const txnRef = db.ref('transactions').push();
+    if(dir==='owesyou'){
+      writes.push(txnRef.set({playerId: playerRef.key, type:'deposit', amount, feePercent:0, paid:false, date: today, periodId: newPeriod.id, note:'Opening balance'}));
+    } else {
+      writes.push(txnRef.set({playerId: playerRef.key, type:'withdraw', amount, feePercent:0, paid:false, date: today, periodId: newPeriod.id, note:'Opening balance'}));
+    }
+  });
+
+  writes.push(db.ref('meta/currentPeriod').set(newPeriod));
+  writes.push(db.ref('meta/settings').set(newSettings));
+  writes.push(db.ref('meta/setupDone').set(true));
+
+  Promise.all(writes).catch(err=>{
+    document.getElementById('setup-error').textContent = err.message;
+  });
+}
+
+// ---------- players ----------
+function addPlayer(){
+  const input = document.getElementById('new-player-name');
+  const name = input.value.trim();
+  const status = document.getElementById('add-player-status');
+  const btn = document.getElementById('add-player-btn');
+  if(!name){ status.textContent = 'Type a name first.'; status.style.color = 'var(--amber)'; return; }
+  status.textContent = 'Saving…';
+  status.style.color = 'var(--text-dim)';
+  btn.disabled = true;
+  db.ref('players').push({name}).then(()=>{
+    input.value='';
+    status.textContent = 'Saved ✓';
+    status.style.color = 'var(--green)';
+    btn.disabled = false;
+    setTimeout(()=>{ if(status.textContent==='Saved ✓') status.textContent=''; }, 2000);
+  }).catch(err=>{
+    status.textContent = 'Failed: ' + err.message;
+    status.style.color = 'var(--red)';
+    btn.disabled = false;
+    console.error('addPlayer error:', err);
+  });
+}
+
+function deletePlayer(id){
+  if(!confirm('Delete this player and all their transactions?')) return;
+  db.ref('players/'+id).remove();
+  txns.filter(t=>t.playerId===id).forEach(t=> db.ref('transactions/'+t.id).remove());
+}
+
+function renderPlayers(){
+  const list = document.getElementById('player-list');
+  document.getElementById('player-count').textContent = players.length;
+  document.getElementById('empty-players').style.display = players.length ? 'none' : 'block';
+  list.innerHTML = players.map(p=>`
+    <div class="player-chip">
+      <span style="color:var(--blue); cursor:pointer; text-decoration:underline;" onclick="showPlayerDetail('${p.id}')">${escapeHtml(p.name)}</span>
+      <button onclick="deletePlayer('${p.id}')" title="Delete player">✕</button>
+    </div>
+  `).join('');
+}
+
+// ---------- player transactions ----------
+function renderTxnPlayerOptions(){
+  const sel = document.getElementById('txn-player');
+  const prev = sel.value;
+  sel.innerHTML = players.map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  if(prev) sel.value = prev;
+  const filter = document.getElementById('txn-filter');
+  const prevF = filter.value;
+  filter.innerHTML = '<option value="all">All players</option>' + players.map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  if(prevF) filter.value = prevF;
+}
+
+function renderPeriodFilterOptions(){
+  if(!currentPeriod) return;
+  const sel = document.getElementById('period-filter');
+  const prevVal = sel.value;
+  const allPeriods = [...archivedPeriods.map(p=>({id:p.id,label:p.label})), {id:currentPeriod.id,label:currentPeriod.label+' (current)'}];
+  sel.innerHTML = '<option value="all">All periods</option>' + allPeriods.map(p=>`<option value="${p.id}">${escapeHtml(p.label)}</option>`).join('');
+  if(prevVal) sel.value = prevVal;
+}
+
+function onTxnTypeChange(){
+  const type = document.getElementById('txn-type').value;
+  document.getElementById('fee-field').style.display = type==='withdraw' ? 'flex' : 'none';
+  if(type==='withdraw') document.getElementById('txn-fee').value = settings.feePercent;
+  updateFeePreview();
+}
+
+function updateFeePreview(){
+  const type = document.getElementById('txn-type').value;
+  const amount = parseFloat(document.getElementById('txn-amount').value)||0;
+  const fee = parseFloat(document.getElementById('txn-fee').value)||0;
+  const preview = document.getElementById('fee-preview');
+  if(type==='withdraw' && amount>0){
+    const feeAmt = amount*fee/100;
+    preview.textContent = `Player receives ${fmt(amount-feeAmt)} · fee collected ${fmt(feeAmt)}`;
+  } else { preview.textContent = ''; }
+}
+document.getElementById('txn-amount').addEventListener('input', updateFeePreview);
+document.getElementById('txn-fee').addEventListener('input', updateFeePreview);
+
+function addTxn(){
+  const playerId = document.getElementById('txn-player').value;
+  if(!playerId){ alert('Add a player first.'); return; }
+  const type = document.getElementById('txn-type').value;
+  const amount = parseFloat(document.getElementById('txn-amount').value);
+  if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
+  const fee = type==='withdraw' ? (parseFloat(document.getElementById('txn-fee').value)||0) : 0;
+  const paid = document.getElementById('txn-paid').checked;
+  const date = document.getElementById('txn-date').value || todayStr();
+  db.ref('transactions').push({playerId, type, amount, feePercent: fee, paid, date, periodId: currentPeriod.id});
+  document.getElementById('txn-amount').value='';
+  document.getElementById('txn-paid').checked=false;
+  updateFeePreview();
+}
+
+function togglePaid(id){
+  const t = txns.find(t=>t.id===id);
+  if(t) db.ref('transactions/'+id).update({paid: !t.paid});
+}
+function deleteTxn(id){ db.ref('transactions/'+id).remove(); }
+
+function periodLabelById(periodId){
+  if(currentPeriod && periodId===currentPeriod.id) return currentPeriod.label+' (current)';
+  const arch = archivedPeriods.find(p=>p.id===periodId);
+  return arch ? arch.label : '—';
+}
+
+function renderTransactions(){
+  renderPeriodFilterOptions();
+  const playerFilter = document.getElementById('txn-filter').value || 'all';
+  const periodFilter = document.getElementById('period-filter').value || 'all';
+  const tbody = document.getElementById('tbl-transactions');
+  let list = [...txns].sort((a,b)=> b.date.localeCompare(a.date));
+  if(playerFilter!=='all') list = list.filter(t=>String(t.playerId)===String(playerFilter));
+  if(periodFilter!=='all') list = list.filter(t=>String(t.periodId)===String(periodFilter));
+  document.getElementById('empty-txns').style.display = list.length ? 'none' : 'block';
+  tbody.innerHTML = list.map(t=>{
+    const player = players.find(p=>p.id===t.playerId);
+    const feeAmt = t.type==='withdraw' ? t.amount*t.feePercent/100 : 0;
+    const net = t.type==='withdraw' ? t.amount-feeAmt : t.amount;
+    return `<tr>
+      <td class="num">${t.date}</td>
+      <td>${player ? escapeHtml(player.name) : '—'}${t.note ? ' <span style="color:var(--text-dim); font-size:11px;">('+escapeHtml(t.note)+')</span>' : ''}</td>
+      <td style="font-size:11.5px; color:var(--text-dim);">${escapeHtml(periodLabelById(t.periodId))}</td>
+      <td><span class="tag ${t.type==='deposit'?'dep':'wd'}">${t.type==='deposit'?'Deposit':'Withdraw'}</span></td>
+      <td class="right num">${fmt(t.amount)}</td>
+      <td class="right num">${t.type==='withdraw' ? fmt(feeAmt)+' ('+t.feePercent+'%)' : '—'}</td>
+      <td class="right num">${fmt(net)}</td>
+      <td><span class="badge ${t.paid?'paid':'notpaid'}" onclick="togglePaid('${t.id}')">${t.paid?'Paid':'Not Paid'}</span></td>
+      <td><button class="btn danger small" onclick="deleteTxn('${t.id}')">Delete</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ---------- super agent ----------
+function addSaTxn(){
+  const type = document.getElementById('sa-type').value;
+  const amount = parseFloat(document.getElementById('sa-amount').value);
+  if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
+  const date = document.getElementById('sa-date').value || todayStr();
+  db.ref('saTransactions').push({type, amount, date, periodId: currentPeriod.id});
+  document.getElementById('sa-amount').value='';
+}
+function deleteSaTxn(id){ db.ref('saTransactions/'+id).remove(); }
+
+function renderSa(){
+  const tbody = document.getElementById('tbl-sa');
+  const list = [...saTxns].sort((a,b)=> b.date.localeCompare(a.date));
+  document.getElementById('empty-sa').style.display = list.length ? 'none' : 'block';
+  tbody.innerHTML = list.map(t=>`
+    <tr>
+      <td class="num">${t.date}</td>
+      <td style="font-size:11.5px; color:var(--text-dim);">${escapeHtml(periodLabelById(t.periodId))}</td>
+      <td><span class="tag ${t.type==='deposit'?'dep':'wd'}">${t.type==='deposit'?'Deposit to SA':'Withdraw from SA'}</span></td>
+      <td class="right num">${fmt(t.amount)}</td>
+      <td><button class="btn danger small" onclick="deleteSaTxn('${t.id}')">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+// ---------- settings ----------
+function populateSettingsForm(){
+  document.getElementById('set-fee').value = settings.feePercent;
+  document.getElementById('set-commission').value = settings.commissionPercent;
+}
+function saveSettings(){
+  const feePercent = parseFloat(document.getElementById('set-fee').value)||0;
+  const commissionPercent = parseFloat(document.getElementById('set-commission').value)||0;
+  db.ref('meta/settings').set({feePercent, commissionPercent}).then(()=> alert('Settings saved.'));
+}
+
+function resetAll(){
+  if(!confirm('This permanently deletes ALL data from the database (players, transactions, archive). This cannot be undone. Continue?')) return;
+  if(!confirm('Really sure? Type-confirm by clicking OK one more time.')) return;
+  Promise.all([
+    db.ref('players').remove(),
+    db.ref('transactions').remove(),
+    db.ref('saTransactions').remove(),
+    db.ref('archivedPeriods').remove(),
+    db.ref('meta').remove()
+  ]).then(()=> location.reload());
+}
+
+// ---------- month close / archive ----------
+function toggleCloseMonthForm(){
+  const form = document.getElementById('close-month-form');
+  form.classList.toggle('open');
+  if(form.classList.contains('open')){
+    const next = new Date();
+    next.setMonth(next.getMonth()+1);
+    document.getElementById('new-period-label').value = monthLabel(next);
+    document.getElementById('opening-adjustment').value = 0;
+  }
+}
+
+function closeMonth(){
+  const tot = computeTotals(currentPeriod.id);
+  const archiveRef = db.ref('archivedPeriods').push();
+  const newLabel = document.getElementById('new-period-label').value.trim() || monthLabel(new Date());
+  const openingAdj = parseFloat(document.getElementById('opening-adjustment').value)||0;
+  const newPeriod = { id: Date.now().toString(), label: newLabel, openingAdjustment: openingAdj, openingGainLoss: 0 };
+
+  Promise.all([
+    archiveRef.set({
+      label: currentPeriod.label,
+      closedDate: todayStr(),
+      agentBalance: tot.agentBalance,
+      gainLoss: tot.gainLoss,
+      commission: tot.commission,
+      fees: tot.playerWithdrawFees
+    }),
+    db.ref('meta/currentPeriod').set(newPeriod)
+  ]).then(()=>{
+    document.getElementById('close-month-form').classList.remove('open');
+  });
+}
+
+function renderArchive(){
+  const tbody = document.getElementById('tbl-archive');
+  document.getElementById('empty-archive').style.display = archivedPeriods.length ? 'none' : 'block';
+  const list = [...archivedPeriods].reverse();
+  tbody.innerHTML = list.map(p=>`
+    <tr>
+      <td>${escapeHtml(p.label)}</td>
+      <td class="num">${p.closedDate}</td>
+      <td class="right num amt-pos">${fmt(p.commission)}</td>
+      <td><span class="details-link" onclick="toggleArchiveDetails('${p.id}')">details</span></td>
+    </tr>
+    <tr id="archive-details-${p.id}" style="display:none;">
+      <td colspan="4">
+        <div class="archive-details">
+          Agent Balance: <span class="num">${fmt(p.agentBalance)}</span> &nbsp;·&nbsp;
+          Gain/Loss: <span class="num">${fmt(p.gainLoss)}</span> &nbsp;·&nbsp;
+          Fees Collected: <span class="num">${fmt(p.fees)}</span>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+function toggleArchiveDetails(periodId){
+  const row = document.getElementById('archive-details-'+periodId);
+  row.style.display = row.style.display==='none' ? 'table-row' : 'none';
+}
+
+// ---------- calculations ----------
+function computeTotals(periodId){
+  let playerDeposits=0, playerWithdrawGross=0, playerWithdrawFees=0;
+  txns.filter(t=>t.periodId===periodId).forEach(t=>{
+    if(t.type==='deposit') playerDeposits += t.amount;
+    else { playerWithdrawGross += t.amount; playerWithdrawFees += t.amount*t.feePercent/100; }
+  });
+  const playerWithdrawNet = playerWithdrawGross - playerWithdrawFees;
+
+  let saDeposits=0, saWithdrawals=0;
+  saTxns.filter(t=>t.periodId===periodId).forEach(t=>{
+    if(t.type==='deposit') saDeposits += t.amount;
+    else saWithdrawals += t.amount;
+  });
+
+  const isCurrent = currentPeriod && periodId===currentPeriod.id;
+  const openingAdj = isCurrent ? (currentPeriod.openingAdjustment||0) : 0;
+  const openingGainLoss = isCurrent ? (currentPeriod.openingGainLoss||0) : 0;
+
+  const agentBalance = openingAdj + playerDeposits - playerWithdrawNet + saDeposits - saWithdrawals;
+  const gainLoss = openingGainLoss + saDeposits - saWithdrawals;
+  const commission = gainLoss>0 ? gainLoss*settings.commissionPercent/100 : 0;
+
+  return {playerDeposits, playerWithdrawGross, playerWithdrawNet, playerWithdrawFees, saDeposits, saWithdrawals, agentBalance, gainLoss, commission};
+}
+
+function computePlayerOutstanding(playerId){
+  let unpaidDeposits=0, unpaidWithdrawNet=0;
+  txns.filter(t=>t.playerId===playerId && !t.paid).forEach(t=>{
+    if(t.type==='deposit') unpaidDeposits += t.amount;
+    else unpaidWithdrawNet += t.amount - (t.amount*t.feePercent/100);
+  });
+  return unpaidWithdrawNet - unpaidDeposits;
+}
+
+function getBalanceRows(){
+  return players.map(p=>{
+    const out = computePlayerOutstanding(p.id);
+    let status;
+    if(Math.abs(out)<0.005) status = 'Settled';
+    else if(out>0) status = 'You owe him';
+    else status = 'Owes you';
+    return {id:p.id, name:p.name, out, status};
+  }).sort((a,b)=> Math.abs(b.out)-Math.abs(a.out));
+}
+
+function renderDashboard(){
+  if(!currentPeriod) return;
+  document.getElementById('period-label-display').textContent = currentPeriod.label;
+  const tot = computeTotals(currentPeriod.id);
+  document.getElementById('val-balance').textContent = fmt(tot.agentBalance);
+  document.getElementById('val-gainloss').textContent = fmt(tot.gainLoss);
+  document.getElementById('val-commission').textContent = fmt(tot.commission);
+  document.getElementById('val-fees').textContent = fmt(tot.playerWithdrawFees);
+
+  document.getElementById('kpi-balance').className = 'kpi ' + (tot.agentBalance>=0?'green':'red');
+  document.getElementById('kpi-gainloss').className = 'kpi ' + (tot.gainLoss>=0?'green':'red');
+  document.getElementById('kpi-commission').className = 'kpi blue';
+  document.getElementById('kpi-fees').className = 'kpi amber';
+
+  const tbody = document.getElementById('tbl-player-balances');
+  document.getElementById('empty-balances').style.display = players.length ? 'none' : 'block';
+  const rows = getBalanceRows();
+  let owedToYou=0, youOwe=0;
+  rows.forEach(r=>{ if(r.out<0) owedToYou += -r.out; if(r.out>0) youOwe += r.out; });
+
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td><span style="color:var(--blue); cursor:pointer; text-decoration:underline;" onclick="showPlayerDetail('${r.id}')">${escapeHtml(r.name)}</span></td>
+      <td class="right num ${r.out>0?'amt-neg':(r.out<0?'amt-pos':'')}">${fmt(Math.abs(r.out))}</td>
+      <td><span class="${r.status==='You owe him'?'amt-neg':(r.status==='Owes you'?'amt-pos':'')}" style="${r.status==='Settled'?'color:var(--text-dim);':''}">${r.status}</span></td>
+    </tr>
+  `).join('');
+
+  document.getElementById('sum-owed-to-you').textContent = fmt(owedToYou);
+  document.getElementById('sum-you-owe').textContent = fmt(youOwe);
+}
+
+// ---------- copy report ----------
+function copyReport(){
+  if(!currentPeriod) return;
+  const rows = getBalanceRows();
+  const date = new Date().toLocaleDateString();
+  let lines = [];
+  lines.push(`*Player Balances Report*`);
+  lines.push(`${currentPeriod.label} — ${date}`);
+  lines.push('');
+  let owedToYou=0, youOwe=0;
+  rows.forEach(r=>{
+    if(r.out<0){ owedToYou += -r.out; lines.push(`✅ ${r.name}: owes you ${fmt(-r.out)}`); }
+    else if(r.out>0){ youOwe += r.out; lines.push(`🔴 ${r.name}: you owe ${fmt(r.out)}`); }
+    else { lines.push(`⚪ ${r.name}: settled`); }
+  });
+  lines.push('');
+  lines.push('——————————');
+  lines.push(`Owed to you: ${fmt(owedToYou)}`);
+  lines.push(`You owe: ${fmt(youOwe)}`);
+  const text = lines.join('\n');
+
+  const showCopied = ()=>{
+    const fb = document.getElementById('copy-feedback');
+    fb.classList.add('show');
+    setTimeout(()=>fb.classList.remove('show'), 1500);
+  };
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(showCopied).catch(()=>fallbackCopy(text, showCopied));
+  } else {
+    fallbackCopy(text, showCopied);
+  }
+}
+function fallbackCopy(text, cb){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position='fixed'; ta.style.left='-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); cb(); }catch(e){ alert('Copy failed — please copy manually:\n\n'+text); }
+  document.body.removeChild(ta);
+}
+
+// ---------- player detail modal ----------
+function showPlayerDetail(playerId){
+  const player = players.find(p=>p.id===playerId);
+  if(!player) return;
+  const out = computePlayerOutstanding(playerId);
+  document.getElementById('pd-name').textContent = player.name;
+
+  let statusText, statusClass;
+  if(Math.abs(out)<0.005){ statusText='Settled'; statusClass=''; }
+  else if(out>0){ statusText='You owe him'; statusClass='red'; }
+  else { statusText='Owes you'; statusClass='green'; }
+  document.getElementById('pd-kpi').className = 'kpi ' + statusClass;
+  document.getElementById('pd-amount').textContent = fmt(Math.abs(out));
+  document.getElementById('pd-status').textContent = statusText;
+
+  const history = txns.filter(t=>t.playerId===playerId).sort((a,b)=> b.date.localeCompare(a.date));
+  document.getElementById('pd-count').textContent = history.length;
+  document.getElementById('pd-empty').style.display = history.length ? 'none' : 'block';
+  document.getElementById('pd-history').innerHTML = history.map(t=>{
+    const feeAmt = t.type==='withdraw' ? t.amount*t.feePercent/100 : 0;
+    const net = t.type==='withdraw' ? t.amount-feeAmt : t.amount;
+    return `<tr>
+      <td class="num">${t.date}</td>
+      <td><span class="tag ${t.type==='deposit'?'dep':'wd'}">${t.type==='deposit'?'Deposit':'Withdraw'}</span></td>
+      <td class="right num">${fmt(net)}</td>
+      <td><span class="badge ${t.paid?'paid':'notpaid'}" onclick="togglePaid('${t.id}'); showPlayerDetail('${playerId}')">${t.paid?'Paid':'Not Paid'}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('player-detail-overlay').style.display = 'flex';
+}
+function closePlayerDetail(){
+  document.getElementById('player-detail-overlay').style.display = 'none';
+}
+
+// ---------- init ----------
+document.getElementById('txn-date').value = todayStr();
+document.getElementById('sa-date').value = todayStr();
+onTxnTypeChange();
+</script>
+
+</body>
+</html>
