@@ -26,6 +26,7 @@
   .note{font-size:11px; color:var(--text-dim); margin-top:16px; line-height:1.5; text-align:left; border-top:1px solid var(--line); padding-top:12px;}
 
   #setup-overlay .card{width:560px; max-height:88vh; overflow-y:auto;}
+  .pd-card{width:560px;}
   #setup-overlay h2{font-family:'Spectral',serif; font-size:16px; margin:18px 0 10px 0;}
   .wiz-row{display:flex; gap:10px; margin-bottom:10px; align-items:flex-end; flex-wrap:wrap;}
   .wiz-field{display:flex; flex-direction:column; gap:4px; flex:1; min-width:110px;}
@@ -108,6 +109,46 @@
   .archive-details{background:var(--panel-light); border-radius:4px; padding:10px 14px; margin:6px 0 10px 0; font-size:12.5px;}
   #copy-feedback{font-size:12px; color:var(--green); margin-left:10px; opacity:0; transition:opacity .2s;}
   #copy-feedback.show{opacity:1;}
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -4px;}
+  .table-scroll table{min-width:560px;}
+
+  @media (max-width: 720px){
+    header{padding:16px 16px 0 16px;}
+    .header-top{flex-direction:column; align-items:flex-start; gap:10px;}
+    .header-right{flex-wrap:wrap; gap:8px 12px; font-size:11.5px;}
+    .header-right span[style*="opacity:0.6"]{display:none;}
+    header h1{font-size:22px;}
+    header p{font-size:12px; margin-bottom:12px;}
+    nav{gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; flex-wrap:nowrap; padding-bottom:2px;}
+    nav button.navbtn{padding:9px 11px; font-size:12.5px; white-space:nowrap; flex:0 0 auto;}
+    main{padding:16px 14px 50px 14px;}
+    .kpi-grid{grid-template-columns:1fr 1fr; gap:10px;}
+    .kpi{padding:12px 13px;}
+    .kpi .value{font-size:19px;}
+    .panel{padding:15px;}
+    .row{flex-direction:column; align-items:stretch;}
+    .row .field{width:100%;}
+    .row input, .row select{width:100%; min-width:0;}
+    .row > button.btn{width:100%;}
+    .topline{flex-direction:column; align-items:stretch;}
+    .topline > div{flex-wrap:wrap;}
+    .period-bar{flex-direction:column; align-items:stretch; gap:10px;}
+    .period-bar button{width:100%;}
+    .wiz-row{flex-direction:column; align-items:stretch;}
+    .wiz-field{width:100%;}
+    .outstanding-row{flex-wrap:wrap;}
+    .outstanding-row input{flex:1 1 100%;}
+    .outstanding-row select{flex:1 1 100%;}
+    .card{width:100%; padding:24px 20px;}
+    #setup-overlay .card{width:100%;}
+    .pd-card{width:100%;}
+    .overlay{padding:12px;}
+    table{font-size:12px;}
+    th, td{padding:7px 7px;}
+  }
+  @media (max-width: 420px){
+    .kpi-grid{grid-template-columns:1fr;}
+  }
 </style>
 </head>
 <body>
@@ -154,17 +195,17 @@
 </div>
 
 <div class="overlay" id="player-detail-overlay" style="display:none;" onclick="if(event.target===this) closePlayerDetail()">
-  <div class="card" style="width:560px; max-height:84vh; overflow-y:auto;">
+  <div class="card pd-card" style="max-height:84vh; overflow-y:auto;">
     <h1 style="font-size:20px;" id="pd-name"></h1>
     <div class="kpi-grid" style="grid-template-columns:1fr 1fr; margin-bottom:18px;">
       <div class="kpi" id="pd-kpi"><div class="label">Outstanding</div><div class="value num" id="pd-amount">$0.00</div><div class="sub" id="pd-status"></div></div>
       <div class="kpi blue"><div class="label">Transactions</div><div class="value num" id="pd-count">0</div><div class="sub">All time</div></div>
     </div>
     <h2>History</h2>
-    <table>
+    <div class="table-scroll"><table>
       <thead><tr><th>Date</th><th>Type</th><th class="right">Net</th><th>Status</th></tr></thead>
       <tbody id="pd-history"></tbody>
-    </table>
+    </table></div>
     <div class="empty" id="pd-empty" style="display:none;">No transactions yet.</div>
     <div style="margin-top:18px;"><button class="btn secondary" onclick="closePlayerDetail()">Close</button></div>
   </div>
@@ -232,10 +273,10 @@
           <span id="copy-feedback">Copied!</span>
         </div>
       </div>
-      <table>
+      <div class="table-scroll"><table>
         <thead><tr><th>Player</th><th class="right">Outstanding</th><th>Status</th></tr></thead>
         <tbody id="tbl-player-balances"></tbody>
-      </table>
+      </table></div>
       <div class="empty" id="empty-balances" style="display:none;">No players yet — add some on the Players page.</div>
       <div class="footnote">Based on unpaid transactions only, across all periods — closing a month never clears this.</div>
     </div>
@@ -287,10 +328,10 @@
           <select id="period-filter" onchange="renderTransactions()" style="min-width:160px;"></select>
         </div>
       </div>
-      <table>
+      <div class="table-scroll"><table>
         <thead><tr><th>Date</th><th>Player</th><th>Period</th><th>Type</th><th class="right">Amount</th><th class="right">Fee</th><th class="right">Net</th><th>Status</th><th></th></tr></thead>
         <tbody id="tbl-transactions"></tbody>
-      </table>
+      </table></div>
       <div class="empty" id="empty-txns" style="display:none;">No transactions logged yet.</div>
     </div>
   </div>
@@ -314,10 +355,10 @@
     </div>
     <div class="panel">
       <h2>Super Agent History</h2>
-      <table>
+      <div class="table-scroll"><table>
         <thead><tr><th>Date</th><th>Period</th><th>Type</th><th class="right">Amount</th><th></th></tr></thead>
         <tbody id="tbl-sa"></tbody>
-      </table>
+      </table></div>
       <div class="empty" id="empty-sa" style="display:none;">No super agent activity yet.</div>
     </div>
   </div>
@@ -327,10 +368,10 @@
     <div class="panel">
       <h2>Closed Months</h2>
       <p class="helptext">Each closed month is archived here. Commission is shown by default — click "details" for the full snapshot.</p>
-      <table>
+      <div class="table-scroll"><table>
         <thead><tr><th>Period</th><th>Closed</th><th class="right">Commission</th><th></th></tr></thead>
         <tbody id="tbl-archive"></tbody>
-      </table>
+      </table></div>
       <div class="empty" id="empty-archive" style="display:none;">No months closed yet.</div>
     </div>
   </div>
