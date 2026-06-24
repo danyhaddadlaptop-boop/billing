@@ -211,6 +211,72 @@
   </div>
 </div>
 
+<div class="overlay" id="wallet-picker-overlay" style="display:none;" onclick="if(event.target===this) cancelWalletPicker()">
+  <div class="card" style="width:340px;">
+    <h1 style="font-size:17px;" id="wallet-picker-title">Which wallet?</h1>
+    <p class="sub" style="margin-bottom:14px;">Pick the wallet this money moved through.</p>
+    <div id="wallet-picker-list"></div>
+    <button class="btn secondary" style="width:100%; margin-top:4px;" onclick="cancelWalletPicker()">Cancel</button>
+  </div>
+</div>
+
+<div class="overlay" id="edit-txn-overlay" style="display:none;" onclick="if(event.target===this) closeEditTxn()">
+  <div class="card" style="width:420px;">
+    <h1 style="font-size:18px;">Edit Transaction</h1>
+    <p class="sub">Dany-only edit tool — changes apply immediately.</p>
+    <div class="field" id="edit-txn-player-field" style="margin-bottom:12px;">
+      <label>Player</label>
+      <select id="edit-txn-player" style="width:100%;"></select>
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Type</label>
+      <select id="edit-txn-type" style="width:100%;" onchange="onEditTxnTypeChange()">
+        <option value="deposit">Deposit</option>
+        <option value="withdraw">Withdraw</option>
+      </select>
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Amount</label>
+      <input type="number" id="edit-txn-amount" step="0.01" style="width:100%;">
+    </div>
+    <div class="field" id="edit-txn-fee-field" style="margin-bottom:12px;">
+      <label>Fee %</label>
+      <input type="number" id="edit-txn-fee" step="0.01" style="width:100%;">
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Date</label>
+      <input type="date" id="edit-txn-date" style="width:100%;">
+    </div>
+    <div class="checkbox-field" style="margin-bottom:12px;">
+      <input type="checkbox" id="edit-txn-paid" onchange="onEditTxnPaidChange()">
+      <label style="text-transform:none;">Paid</label>
+    </div>
+    <div class="field" id="edit-txn-wallet-field" style="margin-bottom:14px;">
+      <label>Wallet</label>
+      <select id="edit-txn-wallet" style="width:100%;"></select>
+    </div>
+    <div class="row" style="margin-bottom:0;">
+      <button class="btn" onclick="saveEditTxn()">Save Changes</button>
+      <button class="btn secondary" onclick="closeEditTxn()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="edit-wallet-overlay" style="display:none;" onclick="if(event.target===this) closeEditWallet()">
+  <div class="card" style="width:340px;">
+    <h1 style="font-size:18px;">Edit Wallet</h1>
+    <p class="sub">Dany-only edit tool.</p>
+    <div class="field" style="margin-bottom:14px;">
+      <label>Wallet name</label>
+      <input id="edit-wallet-name" style="width:100%;">
+    </div>
+    <div class="row" style="margin-bottom:0;">
+      <button class="btn" onclick="saveEditWallet()">Save Changes</button>
+      <button class="btn secondary" onclick="closeEditWallet()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div id="app">
 
 <header>
@@ -231,6 +297,7 @@
     <button class="navbtn" data-page="players">Players</button>
     <button class="navbtn" data-page="transactions">Transactions</button>
     <button class="navbtn" data-page="sa">Super Agent</button>
+    <button class="navbtn" data-page="wallets">Wallets</button>
     <button class="navbtn" data-page="archive">Archive</button>
     <button class="navbtn" data-page="settings">Settings</button>
   </nav>
@@ -277,8 +344,17 @@
         <thead><tr><th>Player</th><th class="right">Outstanding</th><th>Status</th></tr></thead>
         <tbody id="tbl-player-balances"></tbody>
       </table></div>
-      <div class="empty" id="empty-balances" style="display:none;">No players yet — add some on the Players page.</div>
+      <div class="empty" id="empty-balances" style="display:none;">No outstanding balances — everyone's settled, or no players yet.</div>
       <div class="footnote">Based on unpaid transactions only, across all periods — closing a month never clears this.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Wallet Balances</h2>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Wallet</th><th class="right">Balance</th></tr></thead>
+        <tbody id="tbl-dashboard-wallets"></tbody>
+      </table></div>
+      <div class="empty" id="empty-dashboard-wallets" style="display:none;">No wallets with a balance yet.</div>
     </div>
   </div>
 
@@ -329,7 +405,7 @@
         </div>
       </div>
       <div class="table-scroll"><table>
-        <thead><tr><th>Date</th><th>Player</th><th>Period</th><th>Type</th><th class="right">Amount</th><th class="right">Fee</th><th class="right">Net</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Player</th><th>Period</th><th>Type</th><th class="right">Amount</th><th class="right">Fee</th><th class="right">Net</th><th>Status</th><th>Wallet</th><th></th></tr></thead>
         <tbody id="tbl-transactions"></tbody>
       </table></div>
       <div class="empty" id="empty-txns" style="display:none;">No transactions logged yet.</div>
@@ -349,14 +425,15 @@
         </div>
         <div class="field"><label>Amount</label><input type="number" id="sa-amount" placeholder="0.00" min="0" step="0.01"></div>
         <div class="field"><label>Date</label><input type="date" id="sa-date"></div>
+        <div class="field checkbox-field"><input type="checkbox" id="sa-paid"><label style="text-transform:none;">Mark as paid</label></div>
         <button class="btn" onclick="addSaTxn()">Add Transaction</button>
       </div>
-      <div class="helptext">Deposit = money you send to the super agent. Withdraw = money the super agent pays you. Counted toward the current period.</div>
+      <div class="helptext">Deposit = money you send to the super agent (paid from a wallet). Withdraw = money the super agent pays you (paid into a wallet). Marking paid will ask which wallet, same as player transactions.</div>
     </div>
     <div class="panel">
       <h2>Super Agent History</h2>
       <div class="table-scroll"><table>
-        <thead><tr><th>Date</th><th>Period</th><th>Type</th><th class="right">Amount</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Period</th><th>Type</th><th class="right">Amount</th><th>Status</th><th>Wallet</th><th></th></tr></thead>
         <tbody id="tbl-sa"></tbody>
       </table></div>
       <div class="empty" id="empty-sa" style="display:none;">No super agent activity yet.</div>
@@ -373,6 +450,28 @@
         <tbody id="tbl-archive"></tbody>
       </table></div>
       <div class="empty" id="empty-archive" style="display:none;">No months closed yet.</div>
+    </div>
+  </div>
+
+  <!-- WALLETS -->
+  <div class="page" id="page-wallets">
+    <div class="panel">
+      <h2>Add Wallet</h2>
+      <div class="row">
+        <div class="field"><label>Wallet name</label><input id="new-wallet-name" onkeydown="if(event.key==='Enter') addWallet()"></div>
+        <button class="btn" onclick="addWallet()">Add Wallet</button>
+        <button class="btn secondary" onclick="loadDefaultWallets()">Load default wallets</button>
+      </div>
+      <div class="helptext">Default set: Cash, SuperAgent, Ray's Wallet, Ziad's Wallet, Dany's Wallet. "Load default wallets" only adds ones you don't already have.</div>
+    </div>
+    <div class="panel">
+      <h2>All Wallets</h2>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Wallet</th><th class="right">Balance</th><th></th></tr></thead>
+        <tbody id="tbl-wallets"></tbody>
+      </table></div>
+      <div class="empty" id="empty-wallets" style="display:none;">No wallets yet — add one above, or load the defaults.</div>
+      <div class="footnote">Balance reflects every <em>paid</em> transaction tagged to this wallet: player deposits and SA withdrawals add to it; player withdrawals (net of fee) and SA deposits subtract from it.</div>
     </div>
   </div>
 
@@ -434,6 +533,7 @@ let players = [];
 let txns = [];
 let saTxns = [];
 let archivedPeriods = [];
+let wallets = [];
 let currentPeriod = null;
 let settings = { feePercent: 5, commissionPercent: 10 };
 let setupDoneFlag = false;
@@ -468,10 +568,13 @@ function doLogout(){
   auth.signOut();
 }
 
+let isDanyUser = false;
+
 auth.onAuthStateChanged(user=>{
   if(user){
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('logged-in-as').textContent = user.email;
+    isDanyUser = (user.email||'').toLowerCase() === 'dany@agent.com';
     attachListeners();
   } else {
     detachListeners();
@@ -499,8 +602,9 @@ function attachListeners(){
     if(dbg) dbg.textContent = JSON.stringify(snap.val(), null, 2);
     renderPlayers(); renderTxnPlayerOptions(); renderDashboard();
   });
-  db.ref('transactions').on('value', snap=>{ txns = snapToArray(snap); renderTransactions(); renderDashboard(); });
-  db.ref('saTransactions').on('value', snap=>{ saTxns = snapToArray(snap); renderSa(); renderDashboard(); });
+  db.ref('transactions').on('value', snap=>{ txns = snapToArray(snap); renderTransactions(); renderDashboard(); renderWallets(); });
+  db.ref('saTransactions').on('value', snap=>{ saTxns = snapToArray(snap); renderSa(); renderDashboard(); renderWallets(); });
+  db.ref('wallets').on('value', snap=>{ wallets = snapToArray(snap); renderWallets(); renderDashboard(); });
   db.ref('archivedPeriods').on('value', snap=>{ archivedPeriods = snapToArray(snap); renderArchive(); renderPeriodFilterOptions(); renderDashboard(); });
   db.ref('meta/currentPeriod').on('value', snap=>{ currentPeriod = snap.val(); renderDashboard(); renderPeriodFilterOptions(); maybeShowApp(); });
   db.ref('meta/settings').on('value', snap=>{ if(snap.val()) settings = snap.val(); populateSettingsForm(); renderDashboard(); });
@@ -512,6 +616,7 @@ function detachListeners(){
   db.ref('players').off();
   db.ref('transactions').off();
   db.ref('saTransactions').off();
+  db.ref('wallets').off();
   db.ref('archivedPeriods').off();
   db.ref('meta/currentPeriod').off();
   db.ref('meta/settings').off();
@@ -541,6 +646,7 @@ document.querySelectorAll('nav button.navbtn').forEach(btn=>{
     if(btn.dataset.page==='dashboard') renderDashboard();
     if(btn.dataset.page==='transactions') renderTransactions();
     if(btn.dataset.page==='archive') renderArchive();
+    if(btn.dataset.page==='wallets') renderWallets();
   });
 });
 
@@ -695,24 +801,41 @@ function updateFeePreview(){
 document.getElementById('txn-amount').addEventListener('input', updateFeePreview);
 document.getElementById('txn-fee').addEventListener('input', updateFeePreview);
 
-function addTxn(){
+async function addTxn(){
   const playerId = document.getElementById('txn-player').value;
   if(!playerId){ alert('Add a player first.'); return; }
   const type = document.getElementById('txn-type').value;
   const amount = parseFloat(document.getElementById('txn-amount').value);
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
   const fee = type==='withdraw' ? (parseFloat(document.getElementById('txn-fee').value)||0) : 0;
-  const paid = document.getElementById('txn-paid').checked;
+  let paid = document.getElementById('txn-paid').checked;
   const date = document.getElementById('txn-date').value || todayStr();
-  db.ref('transactions').push({playerId, type, amount, feePercent: fee, paid, date, periodId: currentPeriod.id});
+  const record = {playerId, type, amount, feePercent: fee, paid, date, periodId: currentPeriod.id};
+
+  if(paid){
+    const promptText = type==='deposit' ? 'Which wallet did you put this deposit into?' : 'Which wallet did you pay this withdrawal from?';
+    const walletId = await openWalletPicker(promptText);
+    if(walletId){ record.walletId = walletId; }
+    else { record.paid = false; }
+  }
+
+  db.ref('transactions').push(record);
   document.getElementById('txn-amount').value='';
   document.getElementById('txn-paid').checked=false;
   updateFeePreview();
 }
 
-function togglePaid(id){
+async function togglePaid(id){
   const t = txns.find(t=>t.id===id);
-  if(t) db.ref('transactions/'+id).update({paid: !t.paid});
+  if(!t) return;
+  if(!t.paid){
+    const promptText = t.type==='deposit' ? 'Which wallet did you put this deposit into?' : 'Which wallet did you pay this withdrawal from?';
+    const walletId = await openWalletPicker(promptText);
+    if(!walletId) return; // cancelled — leave it as Not Paid
+    db.ref('transactions/'+id).update({paid: true, walletId});
+  } else {
+    db.ref('transactions/'+id).update({paid: false});
+  }
 }
 function deleteTxn(id){ db.ref('transactions/'+id).remove(); }
 
@@ -744,21 +867,46 @@ function renderTransactions(){
       <td class="right num">${t.type==='withdraw' ? fmt(feeAmt)+' ('+t.feePercent+'%)' : '—'}</td>
       <td class="right num">${fmt(net)}</td>
       <td><span class="badge ${t.paid?'paid':'notpaid'}" onclick="togglePaid('${t.id}')">${t.paid?'Paid':'Not Paid'}</span></td>
-      <td><button class="btn danger small" onclick="deleteTxn('${t.id}')">Delete</button></td>
+      <td style="font-size:12px; color:var(--text-dim);">${t.walletId ? escapeHtml(walletNameById(t.walletId)||'(deleted wallet)') : '—'}</td>
+      <td>${isDanyUser ? `<button class="btn secondary small" onclick="openEditTxn('${t.id}')">Edit</button> ` : ''}<button class="btn danger small" onclick="deleteTxn('${t.id}')">Delete</button></td>
     </tr>`;
   }).join('');
 }
 
 // ---------- super agent ----------
-function addSaTxn(){
+async function addSaTxn(){
   const type = document.getElementById('sa-type').value;
   const amount = parseFloat(document.getElementById('sa-amount').value);
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
   const date = document.getElementById('sa-date').value || todayStr();
-  db.ref('saTransactions').push({type, amount, date, periodId: currentPeriod.id});
+  let paid = document.getElementById('sa-paid').checked;
+  const record = {type, amount, date, paid, periodId: currentPeriod.id};
+
+  if(paid){
+    const promptText = type==='deposit' ? 'Which wallet did you pay this deposit from?' : 'Which wallet did you put this withdrawal into?';
+    const walletId = await openWalletPicker(promptText);
+    if(walletId){ record.walletId = walletId; }
+    else { record.paid = false; }
+  }
+
+  db.ref('saTransactions').push(record);
   document.getElementById('sa-amount').value='';
+  document.getElementById('sa-paid').checked=false;
 }
 function deleteSaTxn(id){ db.ref('saTransactions/'+id).remove(); }
+
+async function toggleSaPaid(id){
+  const t = saTxns.find(t=>t.id===id);
+  if(!t) return;
+  if(!t.paid){
+    const promptText = t.type==='deposit' ? 'Which wallet did you pay this deposit from?' : 'Which wallet did you put this withdrawal into?';
+    const walletId = await openWalletPicker(promptText);
+    if(!walletId) return;
+    db.ref('saTransactions/'+id).update({paid: true, walletId});
+  } else {
+    db.ref('saTransactions/'+id).update({paid: false});
+  }
+}
 
 function renderSa(){
   const tbody = document.getElementById('tbl-sa');
@@ -770,9 +918,203 @@ function renderSa(){
       <td style="font-size:11.5px; color:var(--text-dim);">${escapeHtml(periodLabelById(t.periodId))}</td>
       <td><span class="tag ${t.type==='deposit'?'dep':'wd'}">${t.type==='deposit'?'Deposit to SA':'Withdraw from SA'}</span></td>
       <td class="right num">${fmt(t.amount)}</td>
-      <td><button class="btn danger small" onclick="deleteSaTxn('${t.id}')">Delete</button></td>
+      <td><span class="badge ${t.paid?'paid':'notpaid'}" onclick="toggleSaPaid('${t.id}')">${t.paid?'Paid':'Not Paid'}</span></td>
+      <td style="font-size:12px; color:var(--text-dim);">${t.walletId ? escapeHtml(walletNameById(t.walletId)||'(deleted wallet)') : '—'}</td>
+      <td>${isDanyUser ? `<button class="btn secondary small" onclick="openEditSaTxn('${t.id}')">Edit</button> ` : ''}<button class="btn danger small" onclick="deleteSaTxn('${t.id}')">Delete</button></td>
     </tr>
   `).join('');
+}
+
+// ---------- wallets ----------
+const DEFAULT_WALLET_NAMES = ['Cash', 'SuperAgent', "Ray's Wallet", "Ziad's Wallet", "Dany's Wallet"];
+
+function addWallet(){
+  const input = document.getElementById('new-wallet-name');
+  const name = input.value.trim();
+  if(!name) return;
+  db.ref('wallets').push({name}).then(()=>{ input.value=''; });
+}
+
+function deleteWallet(id){
+  if(!confirm('Delete this wallet? Past transactions tagged to it will just show as "(deleted wallet)".')) return;
+  db.ref('wallets/'+id).remove();
+}
+
+function loadDefaultWallets(){
+  const existingNames = wallets.map(w=>w.name.toLowerCase());
+  const toAdd = DEFAULT_WALLET_NAMES.filter(n=>!existingNames.includes(n.toLowerCase()));
+  if(toAdd.length===0){ alert('You already have all the default wallets.'); return; }
+  Promise.all(toAdd.map(name=> db.ref('wallets').push({name})));
+}
+
+function computeWalletBalance(walletId){
+  let bal = 0;
+  txns.filter(t=>t.walletId===walletId && t.paid).forEach(t=>{
+    if(t.type==='deposit') bal += t.amount;
+    else bal -= t.amount - (t.amount*t.feePercent/100);
+  });
+  saTxns.filter(t=>t.walletId===walletId && t.paid).forEach(t=>{
+    if(t.type==='deposit') bal -= t.amount; // paying the SA — money leaves the wallet
+    else bal += t.amount; // SA paying you — money lands in the wallet
+  });
+  return bal;
+}
+
+function walletNameById(walletId){
+  const w = wallets.find(w=>w.id===walletId);
+  return w ? w.name : null;
+}
+
+function renderWallets(){
+  const tbody = document.getElementById('tbl-wallets');
+  if(!tbody) return;
+  document.getElementById('empty-wallets').style.display = wallets.length ? 'none' : 'block';
+  tbody.innerHTML = wallets.map(w=>{
+    const bal = computeWalletBalance(w.id);
+    return `<tr>
+      <td>${escapeHtml(w.name)}</td>
+      <td class="right num ${bal>0?'amt-pos':(bal<0?'amt-neg':'')}">${fmt(bal)}</td>
+      <td>${isDanyUser ? `<button class="btn secondary small" onclick="openEditWallet('${w.id}')">Edit</button> ` : ''}<button class="btn danger small" onclick="deleteWallet('${w.id}')">Delete</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ---------- wallet picker modal ----------
+let walletPickerResolve = null;
+function openWalletPicker(promptText){
+  document.getElementById('wallet-picker-title').textContent = promptText;
+  const list = document.getElementById('wallet-picker-list');
+  if(wallets.length===0){
+    list.innerHTML = `<p class="helptext">No wallets yet — add one on the Wallets page first.</p>`;
+  } else {
+    list.innerHTML = wallets.map(w=>`<button class="btn secondary" style="width:100%; margin-bottom:8px; text-align:left;" onclick="resolveWalletPicker('${w.id}')">${escapeHtml(w.name)}</button>`).join('');
+  }
+  document.getElementById('wallet-picker-overlay').style.display = 'flex';
+  return new Promise(resolve=>{ walletPickerResolve = resolve; });
+}
+function resolveWalletPicker(walletId){
+  document.getElementById('wallet-picker-overlay').style.display = 'none';
+  if(walletPickerResolve) walletPickerResolve(walletId);
+  walletPickerResolve = null;
+}
+function cancelWalletPicker(){
+  document.getElementById('wallet-picker-overlay').style.display = 'none';
+  if(walletPickerResolve) walletPickerResolve(null);
+  walletPickerResolve = null;
+}
+
+// ---------- edit transaction (dany only) ----------
+let editingTxnId = null;
+let editingTxnKind = null; // 'player' or 'sa'
+
+function populateEditWalletOptions(selectedId){
+  const sel = document.getElementById('edit-txn-wallet');
+  sel.innerHTML = '<option value="">— none —</option>' + wallets.map(w=>`<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+  sel.value = selectedId || '';
+}
+
+function onEditTxnTypeChange(){
+  const type = document.getElementById('edit-txn-type').value;
+  document.getElementById('edit-txn-fee-field').style.display = (editingTxnKind==='player' && type==='withdraw') ? 'block' : 'none';
+}
+function onEditTxnPaidChange(){
+  const paid = document.getElementById('edit-txn-paid').checked;
+  document.getElementById('edit-txn-wallet-field').style.display = paid ? 'block' : 'none';
+}
+
+function openEditTxn(id){
+  if(!isDanyUser) return;
+  const t = txns.find(t=>t.id===id);
+  if(!t) return;
+  editingTxnId = id;
+  editingTxnKind = 'player';
+
+  document.getElementById('edit-txn-player-field').style.display = 'block';
+  const psel = document.getElementById('edit-txn-player');
+  psel.innerHTML = players.map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  psel.value = t.playerId;
+
+  document.getElementById('edit-txn-type').value = t.type;
+  document.getElementById('edit-txn-amount').value = t.amount;
+  document.getElementById('edit-txn-fee').value = t.feePercent||0;
+  document.getElementById('edit-txn-date').value = t.date;
+  document.getElementById('edit-txn-paid').checked = !!t.paid;
+  populateEditWalletOptions(t.walletId);
+
+  onEditTxnTypeChange();
+  onEditTxnPaidChange();
+  document.getElementById('edit-txn-overlay').style.display = 'flex';
+}
+
+function openEditSaTxn(id){
+  if(!isDanyUser) return;
+  const t = saTxns.find(t=>t.id===id);
+  if(!t) return;
+  editingTxnId = id;
+  editingTxnKind = 'sa';
+
+  document.getElementById('edit-txn-player-field').style.display = 'none';
+  document.getElementById('edit-txn-type').innerHTML = `<option value="deposit">Deposit to SA</option><option value="withdraw">Withdraw from SA</option>`;
+  document.getElementById('edit-txn-type').value = t.type;
+  document.getElementById('edit-txn-amount').value = t.amount;
+  document.getElementById('edit-txn-date').value = t.date;
+  document.getElementById('edit-txn-paid').checked = !!t.paid;
+  populateEditWalletOptions(t.walletId);
+
+  onEditTxnTypeChange();
+  onEditTxnPaidChange();
+  document.getElementById('edit-txn-overlay').style.display = 'flex';
+}
+
+function closeEditTxn(){
+  document.getElementById('edit-txn-overlay').style.display = 'none';
+  editingTxnId = null;
+  editingTxnKind = null;
+  // restore the player-transaction type options for next time
+  document.getElementById('edit-txn-type').innerHTML = `<option value="deposit">Deposit</option><option value="withdraw">Withdraw</option>`;
+}
+
+function saveEditTxn(){
+  if(!isDanyUser || !editingTxnId) return;
+  const type = document.getElementById('edit-txn-type').value;
+  const amount = parseFloat(document.getElementById('edit-txn-amount').value);
+  if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
+  const date = document.getElementById('edit-txn-date').value || todayStr();
+  const paid = document.getElementById('edit-txn-paid').checked;
+  const walletId = document.getElementById('edit-txn-wallet').value || null;
+
+  if(editingTxnKind==='player'){
+    const playerId = document.getElementById('edit-txn-player').value;
+    const feePercent = type==='withdraw' ? (parseFloat(document.getElementById('edit-txn-fee').value)||0) : 0;
+    const update = {playerId, type, amount, feePercent, date, paid};
+    update.walletId = (paid && walletId) ? walletId : null;
+    db.ref('transactions/'+editingTxnId).update(update).then(closeEditTxn);
+  } else {
+    const update = {type, amount, date, paid};
+    update.walletId = (paid && walletId) ? walletId : null;
+    db.ref('saTransactions/'+editingTxnId).update(update).then(closeEditTxn);
+  }
+}
+
+// ---------- edit wallet (dany only) ----------
+let editingWalletId = null;
+function openEditWallet(id){
+  if(!isDanyUser) return;
+  const w = wallets.find(w=>w.id===id);
+  if(!w) return;
+  editingWalletId = id;
+  document.getElementById('edit-wallet-name').value = w.name;
+  document.getElementById('edit-wallet-overlay').style.display = 'flex';
+}
+function closeEditWallet(){
+  document.getElementById('edit-wallet-overlay').style.display = 'none';
+  editingWalletId = null;
+}
+function saveEditWallet(){
+  if(!isDanyUser || !editingWalletId) return;
+  const name = document.getElementById('edit-wallet-name').value.trim();
+  if(!name) return;
+  db.ref('wallets/'+editingWalletId).update({name}).then(closeEditWallet);
 }
 
 // ---------- settings ----------
@@ -902,7 +1244,8 @@ function getBalanceRows(){
     else if(out>0) status = 'You owe him';
     else status = 'Owes you';
     return {id:p.id, name:p.name, out, status};
-  }).sort((a,b)=> Math.abs(b.out)-Math.abs(a.out));
+  }).filter(r=> r.status!=='Settled')
+    .sort((a,b)=> Math.abs(b.out)-Math.abs(a.out));
 }
 
 function renderDashboard(){
@@ -920,8 +1263,8 @@ function renderDashboard(){
   document.getElementById('kpi-fees').className = 'kpi amber';
 
   const tbody = document.getElementById('tbl-player-balances');
-  document.getElementById('empty-balances').style.display = players.length ? 'none' : 'block';
   const rows = getBalanceRows();
+  document.getElementById('empty-balances').style.display = rows.length ? 'none' : 'block';
   let owedToYou=0, youOwe=0;
   rows.forEach(r=>{ if(r.out<0) owedToYou += -r.out; if(r.out>0) youOwe += r.out; });
 
@@ -935,6 +1278,21 @@ function renderDashboard(){
 
   document.getElementById('sum-owed-to-you').textContent = fmt(owedToYou);
   document.getElementById('sum-you-owe').textContent = fmt(youOwe);
+
+  const walletRows = wallets
+    .map(w=>({name:w.name, bal: computeWalletBalance(w.id)}))
+    .filter(w=> Math.abs(w.bal) >= 0.005)
+    .sort((a,b)=> Math.abs(b.bal)-Math.abs(a.bal));
+  const wbTbody = document.getElementById('tbl-dashboard-wallets');
+  if(wbTbody){
+    document.getElementById('empty-dashboard-wallets').style.display = walletRows.length ? 'none' : 'block';
+    wbTbody.innerHTML = walletRows.map(w=>`
+      <tr>
+        <td>${escapeHtml(w.name)}</td>
+        <td class="right num ${w.bal>0?'amt-pos':'amt-neg'}">${fmt(w.bal)}</td>
+      </tr>
+    `).join('');
+  }
 }
 
 // ---------- copy report ----------
@@ -942,9 +1300,12 @@ function copyReport(){
   if(!currentPeriod) return;
   const rows = getBalanceRows();
   const date = new Date().toLocaleDateString();
+  const tot = computeTotals(currentPeriod.id);
   let lines = [];
   lines.push(`*Player Balances Report*`);
   lines.push(`${currentPeriod.label} — ${date}`);
+  lines.push('');
+  lines.push(`Agent Cash Balance: ${fmt(tot.agentBalance)}`);
   lines.push('');
   let owedToYou=0, youOwe=0;
   rows.forEach(r=>{
@@ -955,6 +1316,17 @@ function copyReport(){
   lines.push('——————————');
   lines.push(`Owed to you: ${fmt(owedToYou)}`);
   lines.push(`You owe: ${fmt(youOwe)}`);
+
+  const walletRows = wallets
+    .map(w=>({name:w.name, bal: computeWalletBalance(w.id)}))
+    .filter(w=> Math.abs(w.bal) >= 0.005)
+    .sort((a,b)=> Math.abs(b.bal)-Math.abs(a.bal));
+  if(walletRows.length){
+    lines.push('');
+    lines.push('*Wallet Balances*');
+    walletRows.forEach(w=>{ lines.push(`${w.name}: ${fmt(w.bal)}`); });
+  }
+
   const text = lines.join('\n');
 
   const showCopied = ()=>{
@@ -1004,7 +1376,7 @@ function showPlayerDetail(playerId){
       <td class="num">${t.date}</td>
       <td><span class="tag ${t.type==='deposit'?'dep':'wd'}">${t.type==='deposit'?'Deposit':'Withdraw'}</span></td>
       <td class="right num">${fmt(net)}</td>
-      <td><span class="badge ${t.paid?'paid':'notpaid'}" onclick="togglePaid('${t.id}'); showPlayerDetail('${playerId}')">${t.paid?'Paid':'Not Paid'}</span></td>
+      <td><span class="badge ${t.paid?'paid':'notpaid'}" onclick="togglePaid('${t.id}').then(()=>showPlayerDetail('${playerId}'))">${t.paid?'Paid':'Not Paid'}</span></td>
     </tr>`;
   }).join('');
 
