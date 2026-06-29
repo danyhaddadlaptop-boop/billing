@@ -87,7 +87,7 @@
   th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-dim); padding:8px 10px; border-bottom:1px solid var(--line); font-weight:500;}
   td{padding:9px 10px; border-bottom:1px solid var(--line);}
   tr:last-child td{border-bottom:none;}
-  .amt-pos{color:var(--green);} .amt-neg{color:var(--red);}
+  .amt-pos{color:var(--green);} .amt-neg{color:var(--red);} .amt-amber{color:var(--amber);}
   .badge{display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; cursor:pointer; user-select:none; border:1px solid transparent;}
   .badge.paid{background:rgba(52,201,143,0.12); color:var(--green); border-color:rgba(52,201,143,0.3);}
   .badge.notpaid{background:rgba(224,164,64,0.12); color:var(--amber); border-color:rgba(224,164,64,0.3);}
@@ -226,7 +226,7 @@
 <div class="overlay" id="edit-txn-overlay" style="display:none;" onclick="if(event.target===this) closeEditTxn()">
   <div class="card" style="width:420px;">
     <h1 style="font-size:18px;">Edit Transaction</h1>
-    <p class="sub">Dany-only edit tool — changes apply immediately.</p>
+    <p class="sub">Admin-only edit tool — changes apply immediately.</p>
     <div class="field" id="edit-txn-player-field" style="margin-bottom:12px;">
       <label>Player</label>
       <select id="edit-txn-player" style="width:100%;"></select>
@@ -268,11 +268,17 @@
 <div class="overlay" id="edit-wallet-overlay" style="display:none;" onclick="if(event.target===this) closeEditWallet()">
   <div class="card" style="width:340px;">
     <h1 style="font-size:18px;">Edit Wallet</h1>
-    <p class="sub">Dany-only edit tool.</p>
+    <p class="sub">Admin-only edit tool.</p>
     <div class="field" style="margin-bottom:14px;">
       <label>Wallet name</label>
       <input id="edit-wallet-name" style="width:100%;">
     </div>
+    <div class="field" style="margin-bottom:8px;">
+      <label>Balance</label>
+      <input type="number" id="edit-wallet-balance" step="0.01" style="width:100%;">
+    </div>
+    <button class="btn secondary small" style="margin-bottom:14px;" onclick="document.getElementById('edit-wallet-balance').value=0">Reset to 0</button>
+    <p class="helptext" style="margin-top:-8px;">Changing this sets a manual correction — future transactions still add or subtract from it normally.</p>
     <div class="row" style="margin-bottom:0;">
       <button class="btn" onclick="saveEditWallet()">Save Changes</button>
       <button class="btn secondary" onclick="closeEditWallet()">Cancel</button>
@@ -312,7 +318,7 @@
   <div class="page active" id="page-dashboard">
     <div class="period-bar">
       <div>Current period: <span class="tag-period" id="period-label-display"></span></div>
-      <button class="btn amber small" onclick="toggleCloseMonthForm()">Close Month</button>
+      <button class="btn amber small admin-only" onclick="toggleCloseMonthForm()">Close Month</button>
     </div>
 
     <div class="panel close-month-form" id="close-month-form">
@@ -352,6 +358,16 @@
     </div>
 
     <div class="panel">
+      <h2>Super Agent Balance</h2>
+      <table>
+        <tbody>
+          <tr><td>Total Deposit to super agent</td><td class="right num" id="val-sa-total-deposit">$0.00</td></tr>
+          <tr><td>Unpaid amount to super agent</td><td class="right num amt-amber" id="val-sa-unpaid">$0.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
       <h2>Wallet Balances</h2>
       <div class="table-scroll"><table>
         <thead><tr><th>Wallet</th><th class="right">Balance</th></tr></thead>
@@ -385,6 +401,7 @@
   <div class="page" id="page-transactions">
     <div class="panel">
       <h2>New Player Transaction</h2>
+      <div class="helptext" id="non-admin-note" style="display:none;">You can log new deposits/withdrawals, but only the admin can mark them paid, edit, or delete them.</div>
       <div class="row">
         <div class="field" style="position:relative;">
           <label>Player</label>
@@ -403,7 +420,7 @@
         <div class="field"><label>Amount</label><input type="number" id="txn-amount" placeholder="0.00" min="0" step="0.01"></div>
         <div class="field" id="fee-field"><label>Fee %</label><input type="number" id="txn-fee" min="0" step="0.01"></div>
         <div class="field"><label>Date</label><input type="date" id="txn-date"></div>
-        <div class="field checkbox-field"><input type="checkbox" id="txn-paid"><label style="text-transform:none;">Mark as paid</label></div>
+        <div class="field checkbox-field admin-only"><input type="checkbox" id="txn-paid"><label style="text-transform:none;">Mark as paid</label></div>
         <button class="btn" onclick="addTxn()">Add Transaction</button>
       </div>
       <div class="helptext" id="fee-preview"></div>
@@ -427,7 +444,7 @@
 
   <!-- SUPER AGENT -->
   <div class="page" id="page-sa">
-    <div class="panel">
+    <div class="panel admin-only">
       <h2>New Super Agent Transaction</h2>
       <div class="row">
         <div class="field"><label>Type</label>
@@ -468,7 +485,7 @@
 
   <!-- WALLETS -->
   <div class="page" id="page-wallets">
-    <div class="panel">
+    <div class="panel admin-only">
       <h2>Add Wallet</h2>
       <div class="row">
         <div class="field"><label>Wallet name</label><input id="new-wallet-name" onkeydown="if(event.key==='Enter') addWallet()"></div>
@@ -490,7 +507,7 @@
 
   <!-- SETTINGS -->
   <div class="page" id="page-settings">
-    <div class="panel">
+    <div class="panel admin-only">
       <h2>Default Rates</h2>
       <div class="row">
         <div class="field"><label>Default withdrawal fee %</label><input type="number" id="set-fee" min="0" step="0.01"></div>
@@ -506,6 +523,15 @@
     <div class="panel">
       <h2>Account</h2>
       <p class="helptext">Usernames and passwords are managed in Firebase Authentication, not inside this app. To add or change a login, go to the Firebase console → Authentication → Users.</p>
+    </div>
+    <div class="panel admin-only">
+      <h2>Manage Admins</h2>
+      <p class="helptext">Anyone signed in can view everything and log new player transactions. Only emails listed here can mark things paid, edit/delete records, manage players/wallets/super-agent entries, close months, or change settings.</p>
+      <div class="row">
+        <div class="field" style="flex:1; min-width:260px;"><label>Admin emails (comma-separated)</label><input id="admin-emails-input" placeholder="dany@agent.com, owner@agent.com"></div>
+        <button class="btn" onclick="saveAdminEmails()">Save</button>
+      </div>
+      <div class="helptext" style="margin-top:-6px;">Be careful not to remove your own email, or you'll lose admin access until someone else re-adds you (or you edit it directly in the Firebase console under <code>meta/adminEmailsCSV</code>).</div>
     </div>
     <div class="panel" id="danger-zone-panel" style="display:none;">
       <h2>Danger Zone</h2>
@@ -576,14 +602,31 @@ function doLogout(){
   auth.signOut();
 }
 
-let isDanyUser = false;
+let isAdminUser = false;
+let currentUserEmail = '';
+let adminEmailsCSV = '';
+
+function applyRoleUI(){
+  document.querySelectorAll('.admin-only').forEach(el=>{ el.style.display = isAdminUser ? '' : 'none'; });
+  const note = document.getElementById('non-admin-note');
+  if(note) note.style.display = isAdminUser ? 'none' : 'block';
+}
+
+function recomputeAdminStatus(){
+  const csv = (',' + (adminEmailsCSV||'') + ',').toLowerCase();
+  isAdminUser = !!currentUserEmail && csv.includes(',' + currentUserEmail.toLowerCase() + ',');
+  document.getElementById('danger-zone-panel').style.display = isAdminUser ? 'block' : 'none';
+  applyRoleUI();
+  renderPlayers(); renderTransactions(); renderSa(); renderWallets();
+  populateAdminEmailsForm();
+}
 
 auth.onAuthStateChanged(user=>{
   if(user){
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('logged-in-as').textContent = user.email;
-    isDanyUser = (user.email||'').toLowerCase() === 'dany@agent.com';
-    document.getElementById('danger-zone-panel').style.display = isDanyUser ? 'block' : 'none';
+    currentUserEmail = user.email || '';
+    applyRoleUI();
     attachListeners();
   } else {
     detachListeners();
@@ -616,6 +659,7 @@ function attachListeners(){
   db.ref('meta/currentPeriod').on('value', snap=>{ currentPeriod = snap.val(); renderDashboard(); renderPeriodFilterOptions(); maybeShowApp(); });
   db.ref('meta/settings').on('value', snap=>{ if(snap.val()) settings = snap.val(); populateSettingsForm(); renderDashboard(); });
   db.ref('meta/setupDone').on('value', snap=>{ setupDoneFlag = !!snap.val(); maybeShowApp(); });
+  db.ref('meta/adminEmailsCSV').on('value', snap=>{ adminEmailsCSV = snap.val() || ''; recomputeAdminStatus(); });
 }
 function detachListeners(){
   if(!listenersAttached) return;
@@ -628,6 +672,7 @@ function detachListeners(){
   db.ref('meta/currentPeriod').off();
   db.ref('meta/settings').off();
   db.ref('meta/setupDone').off();
+  db.ref('meta/adminEmailsCSV').off();
 }
 
 function maybeShowApp(){
@@ -719,6 +764,7 @@ function submitSetup(){
   writes.push(db.ref('meta/currentPeriod').set(newPeriod));
   writes.push(db.ref('meta/settings').set(newSettings));
   writes.push(db.ref('meta/setupDone').set(true));
+  writes.push(db.ref('meta/adminEmailsCSV').set(',' + (currentUserEmail||'').toLowerCase() + ','));
 
   Promise.all(writes).catch(err=>{
     document.getElementById('setup-error').textContent = err.message;
@@ -727,10 +773,10 @@ function submitSetup(){
 
 // ---------- players ----------
 function addPlayer(){
-  const input = document.getElementById('new-player-name');
-  const name = input.value.trim();
   const status = document.getElementById('add-player-status');
   const btn = document.getElementById('add-player-btn');
+  const input = document.getElementById('new-player-name');
+  const name = input.value.trim();
   if(!name){ status.textContent = 'Type a name first.'; status.style.color = 'var(--amber)'; return; }
   status.textContent = 'Saving…';
   status.style.color = 'var(--text-dim)';
@@ -750,6 +796,7 @@ function addPlayer(){
 }
 
 function deletePlayer(id){
+  if(!isAdminUser){ alert('Only the admin can delete players.'); return; }
   if(!confirm('Delete this player and all their transactions?')) return;
   db.ref('players/'+id).remove();
   txns.filter(t=>t.playerId===id).forEach(t=> db.ref('transactions/'+t.id).remove());
@@ -766,7 +813,7 @@ function renderPlayers(){
   list.innerHTML = filtered.map(p=>`
     <div class="player-chip">
       <span style="color:var(--blue); cursor:pointer; text-decoration:underline;" onclick="showPlayerDetail('${p.id}')">${escapeHtml(p.name)}</span>
-      <button onclick="deletePlayer('${p.id}')" title="Delete player">✕</button>
+      ${isAdminUser ? `<button onclick="deletePlayer('${p.id}')" title="Delete player">✕</button>` : ''}
     </div>
   `).join('');
 }
@@ -835,7 +882,7 @@ async function addTxn(){
   const amount = parseFloat(document.getElementById('txn-amount').value);
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
   const fee = type==='withdraw' ? (parseFloat(document.getElementById('txn-fee').value)||0) : 0;
-  let paid = document.getElementById('txn-paid').checked;
+  let paid = isAdminUser ? document.getElementById('txn-paid').checked : false;
   const date = document.getElementById('txn-date').value || todayStr();
   const record = {playerId, type, amount, feePercent: fee, paid, date, periodId: currentPeriod.id};
 
@@ -848,7 +895,7 @@ async function addTxn(){
 
   db.ref('transactions').push(record);
   document.getElementById('txn-amount').value='';
-  document.getElementById('txn-paid').checked=false;
+  if(isAdminUser) document.getElementById('txn-paid').checked=false;
   updateFeePreview();
 }
 
@@ -893,15 +940,16 @@ function renderTransactions(){
       <td class="right num">${fmt(t.amount)}</td>
       <td class="right num">${t.type==='withdraw' ? fmt(feeAmt)+' ('+t.feePercent+'%)' : '—'}</td>
       <td class="right num">${fmt(net)}</td>
-      <td><span class="badge ${t.paid?'paid':'notpaid'}" onclick="togglePaid('${t.id}')">${t.paid?'Paid':'Not Paid'}</span></td>
+      <td>${isAdminUser ? `<span class="badge ${t.paid?'paid':'notpaid'}" onclick="togglePaid('${t.id}')">${t.paid?'Paid':'Not Paid'}</span>` : `<span class="badge ${t.paid?'paid':'notpaid'}" style="cursor:default;">${t.paid?'Paid':'Not Paid'}</span>`}</td>
       <td style="font-size:12px; color:var(--text-dim);">${t.walletId ? escapeHtml(walletNameById(t.walletId)||'(deleted wallet)') : '—'}</td>
-      <td>${isDanyUser ? `<button class="btn secondary small" onclick="openEditTxn('${t.id}')">Edit</button> ` : ''}<button class="btn danger small" onclick="deleteTxn('${t.id}')">Delete</button></td>
+      <td>${isAdminUser ? `<button class="btn secondary small" onclick="openEditTxn('${t.id}')">Edit</button> <button class="btn danger small" onclick="deleteTxn('${t.id}')">Delete</button>` : ''}</td>
     </tr>`;
   }).join('');
 }
 
 // ---------- super agent ----------
 async function addSaTxn(){
+  if(!isAdminUser){ alert('Only the admin can add super agent transactions.'); return; }
   const type = document.getElementById('sa-type').value;
   const amount = parseFloat(document.getElementById('sa-amount').value);
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
@@ -920,7 +968,7 @@ async function addSaTxn(){
   document.getElementById('sa-amount').value='';
   document.getElementById('sa-paid').checked=false;
 }
-function deleteSaTxn(id){ db.ref('saTransactions/'+id).remove(); }
+function deleteSaTxn(id){ if(!isAdminUser){ alert('Only the admin can delete super agent transactions.'); return; } db.ref('saTransactions/'+id).remove(); }
 
 async function toggleSaPaid(id){
   const t = saTxns.find(t=>t.id===id);
@@ -945,9 +993,9 @@ function renderSa(){
       <td style="font-size:11.5px; color:var(--text-dim);">${escapeHtml(periodLabelById(t.periodId))}</td>
       <td><span class="tag ${t.type==='deposit'?'dep':'wd'}">${t.type==='deposit'?'Deposit to SA':'Withdraw from SA'}</span></td>
       <td class="right num">${fmt(t.amount)}</td>
-      <td><span class="badge ${t.paid?'paid':'notpaid'}" onclick="toggleSaPaid('${t.id}')">${t.paid?'Paid':'Not Paid'}</span></td>
+      <td>${isAdminUser ? `<span class="badge ${t.paid?'paid':'notpaid'}" onclick="toggleSaPaid('${t.id}')">${t.paid?'Paid':'Not Paid'}</span>` : `<span class="badge ${t.paid?'paid':'notpaid'}" style="cursor:default;">${t.paid?'Paid':'Not Paid'}</span>`}</td>
       <td style="font-size:12px; color:var(--text-dim);">${t.walletId ? escapeHtml(walletNameById(t.walletId)||'(deleted wallet)') : '—'}</td>
-      <td>${isDanyUser ? `<button class="btn secondary small" onclick="openEditSaTxn('${t.id}')">Edit</button> ` : ''}<button class="btn danger small" onclick="deleteSaTxn('${t.id}')">Delete</button></td>
+      <td>${isAdminUser ? `<button class="btn secondary small" onclick="openEditSaTxn('${t.id}')">Edit</button> <button class="btn danger small" onclick="deleteSaTxn('${t.id}')">Delete</button>` : ''}</td>
     </tr>
   `).join('');
 }
@@ -974,7 +1022,7 @@ function loadDefaultWallets(){
   Promise.all(toAdd.map(name=> db.ref('wallets').push({name})));
 }
 
-function computeWalletBalance(walletId){
+function computeWalletTxnSum(walletId){
   let bal = 0;
   txns.filter(t=>t.walletId===walletId && t.paid).forEach(t=>{
     if(t.type==='deposit') bal += t.amount;
@@ -985,6 +1033,12 @@ function computeWalletBalance(walletId){
     else bal += t.amount; // SA paying you — money lands in the wallet
   });
   return bal;
+}
+
+function computeWalletBalance(walletId){
+  const w = wallets.find(w=>w.id===walletId);
+  const adjustment = (w && w.adjustment) ? w.adjustment : 0;
+  return adjustment + computeWalletTxnSum(walletId);
 }
 
 function walletNameById(walletId){
@@ -1001,7 +1055,7 @@ function renderWallets(){
     return `<tr>
       <td>${escapeHtml(w.name)}</td>
       <td class="right num ${bal>0?'amt-pos':(bal<0?'amt-neg':'')}">${fmt(bal)}</td>
-      <td>${isDanyUser ? `<button class="btn secondary small" onclick="openEditWallet('${w.id}')">Edit</button> ` : ''}<button class="btn danger small" onclick="deleteWallet('${w.id}')">Delete</button></td>
+      <td>${isAdminUser ? `<button class="btn secondary small" onclick="openEditWallet('${w.id}')">Edit</button> <button class="btn danger small" onclick="deleteWallet('${w.id}')">Delete</button>` : ''}</td>
     </tr>`;
   }).join('');
 }
@@ -1050,7 +1104,7 @@ function onEditTxnPaidChange(){
 }
 
 function openEditTxn(id){
-  if(!isDanyUser) return;
+  if(!isAdminUser) return;
   const t = txns.find(t=>t.id===id);
   if(!t) return;
   editingTxnId = id;
@@ -1074,7 +1128,7 @@ function openEditTxn(id){
 }
 
 function openEditSaTxn(id){
-  if(!isDanyUser) return;
+  if(!isAdminUser) return;
   const t = saTxns.find(t=>t.id===id);
   if(!t) return;
   editingTxnId = id;
@@ -1102,7 +1156,7 @@ function closeEditTxn(){
 }
 
 function saveEditTxn(){
-  if(!isDanyUser || !editingTxnId) return;
+  if(!isAdminUser || !editingTxnId) return;
   const type = document.getElementById('edit-txn-type').value;
   const amount = parseFloat(document.getElementById('edit-txn-amount').value);
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
@@ -1126,11 +1180,12 @@ function saveEditTxn(){
 // ---------- edit wallet (dany only) ----------
 let editingWalletId = null;
 function openEditWallet(id){
-  if(!isDanyUser) return;
+  if(!isAdminUser) return;
   const w = wallets.find(w=>w.id===id);
   if(!w) return;
   editingWalletId = id;
   document.getElementById('edit-wallet-name').value = w.name;
+  document.getElementById('edit-wallet-balance').value = computeWalletBalance(id).toFixed(2);
   document.getElementById('edit-wallet-overlay').style.display = 'flex';
 }
 function closeEditWallet(){
@@ -1138,10 +1193,13 @@ function closeEditWallet(){
   editingWalletId = null;
 }
 function saveEditWallet(){
-  if(!isDanyUser || !editingWalletId) return;
+  if(!isAdminUser || !editingWalletId) return;
   const name = document.getElementById('edit-wallet-name').value.trim();
   if(!name) return;
-  db.ref('wallets/'+editingWalletId).update({name}).then(closeEditWallet);
+  const enteredBalance = parseFloat(document.getElementById('edit-wallet-balance').value);
+  const txnSum = computeWalletTxnSum(editingWalletId);
+  const adjustment = (isNaN(enteredBalance) ? 0 : enteredBalance) - txnSum;
+  db.ref('wallets/'+editingWalletId).update({name, adjustment}).then(closeEditWallet);
 }
 
 // ---------- settings ----------
@@ -1150,13 +1208,32 @@ function populateSettingsForm(){
   document.getElementById('set-commission').value = settings.commissionPercent;
 }
 function saveSettings(){
+  if(!isAdminUser){ alert('Only an admin can change rates.'); return; }
   const feePercent = parseFloat(document.getElementById('set-fee').value)||0;
   const commissionPercent = parseFloat(document.getElementById('set-commission').value)||0;
   db.ref('meta/settings').set({feePercent, commissionPercent}).then(()=> alert('Settings saved.'));
 }
 
+function populateAdminEmailsForm(){
+  const input = document.getElementById('admin-emails-input');
+  if(!input) return;
+  const list = (adminEmailsCSV||'').split(',').map(e=>e.trim()).filter(Boolean);
+  input.value = list.join(', ');
+}
+function saveAdminEmails(){
+  if(!isAdminUser){ alert('Only an admin can manage the admin list.'); return; }
+  const raw = document.getElementById('admin-emails-input').value;
+  const list = raw.split(',').map(e=>e.trim().toLowerCase()).filter(Boolean);
+  if(list.length===0){ alert('Keep at least one admin email in the list.'); return; }
+  if(!list.includes(currentUserEmail.toLowerCase())){
+    if(!confirm("Your own email isn't in this list — saving will remove your admin access immediately. Continue anyway?")) return;
+  }
+  const csv = ',' + list.join(',') + ',';
+  db.ref('meta/adminEmailsCSV').set(csv).then(()=> alert('Admin list saved.'));
+}
+
 function resetAll(){
-  if(!isDanyUser){ alert('Only dany@agent.com can clear all data.'); return; }
+  if(!isAdminUser){ alert('Only an admin can clear all data.'); return; }
   if(!confirm('This permanently deletes ALL data from the database (players, transactions, wallets, archive). This cannot be undone. Continue?')) return;
   if(!confirm('Really sure? Type-confirm by clicking OK one more time.')) return;
   Promise.all([
@@ -1277,6 +1354,15 @@ function getBalanceRows(){
     .sort((a,b)=> Math.abs(b.out)-Math.abs(a.out));
 }
 
+function computeSaAllTimeTotals(){
+  let totalDeposit = 0, unpaidAmount = 0;
+  saTxns.forEach(t=>{
+    if(t.type==='deposit') totalDeposit += t.amount;
+    if(!t.paid) unpaidAmount += t.amount;
+  });
+  return {totalDeposit, unpaidAmount};
+}
+
 function renderDashboard(){
   if(!currentPeriod) return;
   document.getElementById('period-label-display').textContent = currentPeriod.label;
@@ -1290,6 +1376,10 @@ function renderDashboard(){
   document.getElementById('kpi-gainloss').className = 'kpi ' + (tot.gainLoss>=0?'green':'red');
   document.getElementById('kpi-commission').className = 'kpi blue';
   document.getElementById('kpi-fees').className = 'kpi amber';
+
+  const saTotals = computeSaAllTimeTotals();
+  document.getElementById('val-sa-total-deposit').textContent = fmt(saTotals.totalDeposit);
+  document.getElementById('val-sa-unpaid').textContent = fmt(saTotals.unpaidAmount);
 
   const tbody = document.getElementById('tbl-player-balances');
   const rows = getBalanceRows();
@@ -1335,6 +1425,9 @@ function copyReport(){
   lines.push(`${currentPeriod.label} — ${date}`);
   lines.push('');
   lines.push(`Agent Cash Balance: ${fmt(tot.agentBalance)}`);
+  const saTotals = computeSaAllTimeTotals();
+  lines.push(`Total Deposit to super agent: ${fmt(saTotals.totalDeposit)}`);
+  lines.push(`Unpaid amount to super agent: ${fmt(saTotals.unpaidAmount)}`);
   lines.push('');
   let owedToYou=0, youOwe=0;
   rows.forEach(r=>{
@@ -1405,7 +1498,7 @@ function showPlayerDetail(playerId){
       <td class="num">${t.date}</td>
       <td><span class="tag ${t.type==='deposit'?'dep':'wd'}">${t.type==='deposit'?'Deposit':'Withdraw'}</span></td>
       <td class="right num">${fmt(net)}</td>
-      <td><span class="badge ${t.paid?'paid':'notpaid'}" onclick="togglePaid('${t.id}').then(()=>showPlayerDetail('${playerId}'))">${t.paid?'Paid':'Not Paid'}</span></td>
+      <td>${isAdminUser ? `<span class="badge ${t.paid?'paid':'notpaid'}" onclick="togglePaid('${t.id}').then(()=>showPlayerDetail('${playerId}'))">${t.paid?'Paid':'Not Paid'}</span>` : `<span class="badge ${t.paid?'paid':'notpaid'}" style="cursor:default;">${t.paid?'Paid':'Not Paid'}</span>`}</td>
     </tr>`;
   }).join('');
 
