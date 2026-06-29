@@ -361,7 +361,6 @@
       <h2>Super Agent Balance</h2>
       <table>
         <tbody>
-          <tr><td>Total Deposit to super agent</td><td class="right num" id="val-sa-total-deposit">$0.00</td></tr>
           <tr><td>Unpaid amount to super agent</td><td class="right num amt-amber" id="val-sa-unpaid">$0.00</td></tr>
         </tbody>
       </table>
@@ -1378,7 +1377,6 @@ function renderDashboard(){
   document.getElementById('kpi-fees').className = 'kpi amber';
 
   const saTotals = computeSaAllTimeTotals();
-  document.getElementById('val-sa-total-deposit').textContent = fmt(saTotals.totalDeposit);
   document.getElementById('val-sa-unpaid').textContent = fmt(saTotals.unpaidAmount);
 
   const tbody = document.getElementById('tbl-player-balances');
@@ -1426,7 +1424,6 @@ function copyReport(){
   lines.push('');
   lines.push(`Agent Cash Balance: ${fmt(tot.agentBalance)}`);
   const saTotals = computeSaAllTimeTotals();
-  lines.push(`Total Deposit to super agent: ${fmt(saTotals.totalDeposit)}`);
   lines.push(`Unpaid amount to super agent: ${fmt(saTotals.unpaidAmount)}`);
   lines.push('');
   let owedToYou=0, youOwe=0;
