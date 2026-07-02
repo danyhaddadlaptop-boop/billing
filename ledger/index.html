@@ -121,6 +121,7 @@
   /* ---- tables ---- */
   .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .table-scroll table{min-width:560px;}
+  .table-fluid table{width:100%;} /* dashboard tables — no forced min-width, no scroll */
   table{width:100%; border-collapse:collapse; font-size:13px;}
   th{text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-dim); padding:8px 10px; border-bottom:1px solid var(--line); font-weight:600;}
   td{padding:10px 10px; border-bottom:1px solid var(--line);}
@@ -418,6 +419,7 @@
     <button class="navbtn" data-page="sa">Super Agent</button>
     <button class="navbtn" data-page="wallets">Wallets</button>
     <button class="navbtn" data-page="archive">Archive</button>
+    <button class="navbtn admin-only" data-page="audit">Audit Logs</button>
     <button class="navbtn" data-page="settings">Settings</button>
   </nav>
 </header>
@@ -492,7 +494,7 @@
           <span id="copy-feedback">Copied!</span>
         </div>
       </div>
-      <div class="table-scroll"><table>
+      <div class="table-fluid"><table>
         <thead><tr><th>Player</th><th class="right">Outstanding</th><th>Status</th></tr></thead>
         <tbody id="tbl-player-balances"></tbody>
       </table></div>
@@ -502,7 +504,7 @@
 
     <div class="panel">
       <h2>Super Agent Balance</h2>
-      <table>
+      <table style="width:100%;">
         <tbody>
           <tr><td>Unpaid amount to super agent</td><td class="right num amt-amber" id="val-sa-unpaid">$0.00</td></tr>
         </tbody>
@@ -511,7 +513,7 @@
 
     <div class="panel">
       <h2>Wallet Balances</h2>
-      <div class="table-scroll"><table>
+      <div class="table-fluid"><table>
         <thead><tr><th>Wallet</th><th class="right">Balance</th></tr></thead>
         <tbody id="tbl-dashboard-wallets"></tbody>
       </table></div>
@@ -632,6 +634,21 @@
         <tbody id="tbl-sa"></tbody>
       </table></div>
       <div class="empty" id="empty-sa" style="display:none;">No super agent activity yet.</div>
+    </div>
+  </div>
+
+  <!-- AUDIT LOGS -->
+  <div class="page" id="page-audit">
+    <div class="panel">
+      <div class="topline">
+        <h2 style="margin:0;">Audit Logs</h2>
+        <span style="font-size:12px; color:var(--text-dim);">Last 200 actions across all users</span>
+      </div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th></tr></thead>
+        <tbody id="tbl-audit"></tbody>
+      </table></div>
+      <div class="empty" id="empty-audit" style="display:none;">No activity logged yet.</div>
     </div>
   </div>
 
@@ -827,6 +844,7 @@ function attachListeners(){
   db.ref('meta/settings').on('value', snap=>{ if(snap.val()) settings = snap.val(); populateSettingsForm(); renderDashboard(); });
   db.ref('meta/setupDone').on('value', snap=>{ setupDoneFlag = !!snap.val(); maybeShowApp(); });
   db.ref('meta/adminEmailsCSV').on('value', snap=>{ adminEmailsCSV = snap.val() || ''; recomputeAdminStatus(); });
+  db.ref('auditLogs').limitToLast(200).on('value', snap=>{ auditLogs = snapToArray(snap).reverse(); renderAuditLogs(); });
 }
 function detachListeners(){
   if(!listenersAttached) return;
@@ -840,6 +858,38 @@ function detachListeners(){
   db.ref('meta/settings').off();
   db.ref('meta/setupDone').off();
   db.ref('meta/adminEmailsCSV').off();
+  db.ref('auditLogs').off();
+}
+
+// ---------- audit logging ----------
+let auditLogs = [];
+
+function logAudit(action, details){
+  db.ref('auditLogs').push({
+    ts: Date.now(),
+    user: currentUserEmail || '?',
+    action,
+    details: details || ''
+  });
+}
+
+function renderAuditLogs(){
+  const tbody = document.getElementById('tbl-audit');
+  if(!tbody) return;
+  document.getElementById('empty-audit').style.display = auditLogs.length ? 'none' : 'block';
+  tbody.innerHTML = auditLogs.map(log=>{
+    const d = new Date(log.ts);
+    const timeStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    const actionClass = log.action.includes('Delete') ? 'amt-neg' :
+                        log.action.includes('Add') || log.action.includes('Create') ? 'amt-pos' :
+                        log.action.includes('Edit') || log.action.includes('Rename') ? 'amt-amber' : '';
+    return `<tr>
+      <td class="num" style="white-space:nowrap; font-size:12px;">${timeStr}</td>
+      <td style="font-size:12px; color:var(--text-dim);">${escapeHtml(log.user)}</td>
+      <td><span class="${actionClass}" style="font-weight:600; font-size:12.5px;">${escapeHtml(log.action)}</span></td>
+      <td style="font-size:12.5px; color:var(--text-dim);">${escapeHtml(log.details||'')}</td>
+    </tr>`;
+  }).join('');
 }
 
 function maybeShowApp(){
@@ -864,6 +914,7 @@ function switchPage(page){
   if(page==='dashboard') renderDashboard();
   if(page==='transactions') renderTransactions();
   if(page==='archive') renderArchive();
+  if(page==='audit') renderAuditLogs();
   if(page==='wallets') renderWallets();
   if(page==='players') renderPlayers();
 }
@@ -951,6 +1002,7 @@ function addPlayer(){
   status.style.color = 'var(--text-dim)';
   btn.disabled = true;
   db.ref('players').push({name}).then(()=>{
+    logAudit('Add Player', name);
     input.value='';
     status.textContent = 'Saved ✓';
     status.style.color = 'var(--green)';
@@ -967,6 +1019,8 @@ function addPlayer(){
 function deletePlayer(id){
   if(!isAdminUser){ alert('Only the admin can delete players.'); return; }
   if(!confirm('Delete this player and all their transactions?')) return;
+  const p = players.find(p=>p.id===id);
+  logAudit('Delete Player', p ? p.name : id);
   db.ref('players/'+id).remove();
   txns.filter(t=>t.playerId===id).forEach(t=> db.ref('transactions/'+t.id).remove());
 }
@@ -1203,6 +1257,8 @@ async function addTxn(){
   }
 
   db.ref('transactions').push(record);
+  const pName = players.find(p=>p.id===playerId)?.name || playerId;
+  logAudit('Add Transaction', `${type} $${amount} for ${pName}${record.agent ? ' ('+record.agent+')' : ''}`);
   document.getElementById('txn-amount').value='';
   if(isAdminUser) document.getElementById('txn-paid').checked=false;
   updateFeePreview();
@@ -1211,16 +1267,25 @@ async function addTxn(){
 async function togglePaid(id){
   const t = txns.find(t=>t.id===id);
   if(!t) return;
+  const pName = players.find(p=>p.id===t.playerId)?.name || t.playerId;
   if(!t.paid){
     const promptText = t.type==='deposit' ? 'Which wallet did you put this deposit into?' : 'Which wallet did you pay this withdrawal from?';
     const walletId = await openWalletPicker(promptText);
     if(!walletId) return; // cancelled — leave it as Not Paid
     db.ref('transactions/'+id).update({paid: true, walletId});
+    logAudit('Mark Paid', `${t.type} $${t.amount} for ${pName}`);
   } else {
     db.ref('transactions/'+id).update({paid: false});
+    logAudit('Mark Unpaid', `${t.type} $${t.amount} for ${pName}`);
   }
 }
-function deleteTxn(id){ db.ref('transactions/'+id).remove(); }
+function deleteTxn(id){
+  if(!confirm('Delete this transaction? This cannot be undone.')) return;
+  const t = txns.find(t=>t.id===id);
+  const pName = t ? (players.find(p=>p.id===t.playerId)?.name || '?') : '?';
+  logAudit('Delete Transaction', t ? `${t.type} $${t.amount} for ${pName}` : id);
+  db.ref('transactions/'+id).remove();
+}
 
 function periodLabelById(periodId){
   if(!periodId) return '—';
@@ -1277,10 +1342,17 @@ async function addSaTxn(){
   }
 
   db.ref('saTransactions').push(record);
+  logAudit('Add SA Transaction', `${type} $${amount}`);
   document.getElementById('sa-amount').value='';
   document.getElementById('sa-paid').checked=false;
 }
-function deleteSaTxn(id){ if(!isAdminUser){ alert('Only the admin can delete super agent transactions.'); return; } db.ref('saTransactions/'+id).remove(); }
+function deleteSaTxn(id){
+  if(!isAdminUser){ alert('Only the admin can delete super agent transactions.'); return; }
+  if(!confirm('Delete this super agent transaction? This cannot be undone.')) return;
+  const t = saTxns.find(t=>t.id===id);
+  logAudit('Delete SA Transaction', t ? `${t.type} $${t.amount}` : id);
+  db.ref('saTransactions/'+id).remove();
+}
 
 async function toggleSaPaid(id){
   const t = saTxns.find(t=>t.id===id);
@@ -1290,8 +1362,10 @@ async function toggleSaPaid(id){
     const walletId = await openWalletPicker(promptText);
     if(!walletId) return;
     db.ref('saTransactions/'+id).update({paid: true, walletId});
+    logAudit('SA Mark Paid', `${t.type} $${t.amount}`);
   } else {
     db.ref('saTransactions/'+id).update({paid: false});
+    logAudit('SA Mark Unpaid', `${t.type} $${t.amount}`);
   }
 }
 
@@ -1322,11 +1396,13 @@ function addWallet(){
   const input = document.getElementById('new-wallet-name');
   const name = input.value.trim();
   if(!name) return;
-  db.ref('wallets').push({name}).then(()=>{ input.value=''; });
+  db.ref('wallets').push({name}).then(()=>{ logAudit('Add Wallet', name); input.value=''; });
 }
 
 function deleteWallet(id){
   if(!confirm('Delete this wallet? Past transactions tagged to it will just show as "(deleted wallet)".')) return;
+  const w = wallets.find(w=>w.id===id);
+  logAudit('Delete Wallet', w ? w.name : id);
   db.ref('wallets/'+id).remove();
 }
 
@@ -1435,7 +1511,8 @@ function saveEditPlayer(){
   if(!isAdminUser || !editingPlayerId) return;
   const name = document.getElementById('edit-player-name-input').value.trim();
   if(!name) return;
-  db.ref('players/'+editingPlayerId).update({name}).then(closeEditPlayer);
+  const oldName = players.find(p=>p.id===editingPlayerId)?.name || editingPlayerId;
+  db.ref('players/'+editingPlayerId).update({name}).then(()=>{ logAudit('Rename Player', `${oldName} → ${name}`); closeEditPlayer(); });
 }
 
 // ---------- edit transaction (dany only) ----------
@@ -1630,6 +1707,7 @@ function closeMonth(){
     }),
     db.ref('meta/currentPeriod').set(newPeriod)
   ]).then(()=>{
+    logAudit('Close Month', `${currentPeriod.label} → ${newLabel}`);
     document.getElementById('close-month-form').classList.remove('open');
     txnArchiveActive = true;
     saArchiveActive = true;
