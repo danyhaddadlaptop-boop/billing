@@ -287,7 +287,25 @@
       <tbody id="pd-history"></tbody>
     </table></div>
     <div class="empty" id="pd-empty" style="display:none;">No transactions yet.</div>
-    <div style="margin-top:18px;"><button class="btn secondary" onclick="closePlayerDetail()">Close</button></div>
+    <div id="pd-totals" style="background:var(--panel-light); border:1px solid var(--line); border-radius:6px; padding:14px 16px; margin-top:14px; display:none;">
+      <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-dim); margin-bottom:10px;">This period totals</div>
+      <div style="display:flex; gap:0; flex-direction:column; gap:8px;">
+        <div style="display:flex; justify-content:space-between; font-size:13.5px;">
+          <span>Total Deposited</span>
+          <span class="num amt-pos" id="pd-total-deposit">$0.00</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13.5px;">
+          <span>Total Withdrawn (net)</span>
+          <span class="num amt-neg" id="pd-total-withdraw">$0.00</span>
+        </div>
+        <div style="height:1px; background:var(--line); margin:2px 0;"></div>
+        <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:600;">
+          <span>Net (Deposit − Withdraw)</span>
+          <span class="num" id="pd-total-net">$0.00</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;"><button class="btn secondary" onclick="closePlayerDetail()">Close</button></div>
   </div>
 </div>
 
@@ -1935,9 +1953,31 @@ function showPlayerDetail(playerId){
   document.getElementById('pd-amount').textContent = fmt(Math.abs(out));
   document.getElementById('pd-status').textContent = statusText;
 
-  const history = txns.filter(t=>t.playerId===playerId).sort((a,b)=> b.date.localeCompare(a.date));
+  const history = txns.filter(t=>t.playerId===playerId && t.periodId===currentPeriod.id).sort((a,b)=> b.date.localeCompare(a.date));
+  const allTxns = txns.filter(t=>t.playerId===playerId);
   document.getElementById('pd-count').textContent = history.length;
+  document.getElementById('pd-count').parentElement.querySelector('.sub').textContent = 'This period';
   document.getElementById('pd-empty').style.display = history.length ? 'none' : 'block';
+  document.getElementById('pd-empty').textContent = allTxns.length ? 'No transactions this period.' : 'No transactions yet.';
+
+  // Current period totals
+  let totalDeposit = 0, totalWithdrawNet = 0;
+  history.forEach(t=>{
+    if(t.type==='deposit') totalDeposit += t.amount;
+    else totalWithdrawNet += t.amount - (t.amount*(t.feePercent||0)/100);
+  });
+  const totalNet = totalDeposit - totalWithdrawNet;
+  const totalsEl = document.getElementById('pd-totals');
+  if(history.length){
+    totalsEl.style.display = 'block';
+    document.getElementById('pd-total-deposit').textContent = fmt(totalDeposit);
+    document.getElementById('pd-total-withdraw').textContent = fmt(totalWithdrawNet);
+    const netEl = document.getElementById('pd-total-net');
+    netEl.textContent = fmt(Math.abs(totalNet));
+    netEl.className = 'num ' + (totalNet>0?'amt-pos':totalNet<0?'amt-neg':'');
+  } else {
+    totalsEl.style.display = 'none';
+  }
   document.getElementById('pd-history').innerHTML = history.map(t=>{
     const feeAmt = t.type==='withdraw' ? t.amount*t.feePercent/100 : 0;
     const net = t.type==='withdraw' ? t.amount-feeAmt : t.amount;
