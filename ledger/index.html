@@ -305,7 +305,29 @@
         </div>
       </div>
     </div>
-    <div style="margin-top:14px;"><button class="btn secondary" onclick="closePlayerDetail()">Close</button></div>
+
+    <!-- Partial settlement -->
+    <div id="pd-settlement-section" style="display:none; margin-top:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div style="font-size:13px; font-weight:600;">Record Partial Settlement</div>
+        <button class="btn secondary small" onclick="toggleSettlementForm()">✕</button>
+      </div>
+      <div style="background:var(--panel-light); border:1px solid var(--line); border-radius:6px; padding:14px;">
+        <div style="font-size:12px; color:var(--text-dim); margin-bottom:12px;" id="pd-settlement-hint"></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+          <div class="field" style="flex:1; min-width:120px;">
+            <label>Settlement amount</label>
+            <input type="number" id="pd-settlement-amount" step="0.01" min="0.01" placeholder="0.00">
+          </div>
+          <button class="btn" onclick="recordSettlement()">Record</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn secondary" onclick="closePlayerDetail()">Close</button>
+      <button class="btn amber small" id="pd-settle-btn" onclick="toggleSettlementForm()" style="display:none;">Partial Settlement</button>
+    </div>
   </div>
 </div>
 
@@ -1435,7 +1457,12 @@ function computeWalletTxnSum(walletId){
   let bal = 0;
   txns.filter(t=>t.walletId===walletId && t.paid).forEach(t=>{
     if(t.type==='deposit') bal += t.amount;
-    else bal -= t.amount - (t.amount*t.feePercent/100);
+    else if(t.type==='settlement'){
+      // settlement: direction='in' means cash received into wallet, 'out' means cash paid out
+      if(t.direction==='in') bal += t.amount;
+      else bal -= t.amount;
+    }
+    else bal -= t.amount - (t.amount*(t.feePercent||0)/100);
   });
   saTxns.filter(t=>t.walletId===walletId && t.paid).forEach(t=>{
     if(t.type==='deposit') bal -= t.amount; // paying the SA — money leaves the wallet
@@ -1446,7 +1473,8 @@ function computeWalletTxnSum(walletId){
 
 function computeWalletBalance(walletId){
   const w = wallets.find(w=>w.id===walletId);
-  const adjustment = (w && w.adjustment) ? w.adjustment : 0;
+  const raw = w ? Number(w.adjustment) : 0;
+  const adjustment = isFinite(raw) ? raw : 0;
   return adjustment + computeWalletTxnSum(walletId);
 }
 
@@ -1461,12 +1489,31 @@ function renderWallets(){
   document.getElementById('empty-wallets').style.display = wallets.length ? 'none' : 'block';
   tbody.innerHTML = wallets.map(w=>{
     const bal = computeWalletBalance(w.id);
+    const raw = w ? Number(w.adjustment) : 0;
+    const isCorrupt = w.adjustment !== undefined && !isFinite(raw);
     return `<tr>
-      <td>${escapeHtml(w.name)}</td>
+      <td>${escapeHtml(w.name)}${isCorrupt ? ' <span style="color:var(--red); font-size:11px;">(corrupted)</span>' : ''}</td>
       <td class="right num ${bal>0?'amt-pos':(bal<0?'amt-neg':'')}">${fmt(bal)}</td>
-      <td>${isAdminUser ? `<button class="btn secondary small" onclick="openEditWallet('${w.id}')">Edit</button> <button class="btn danger small" onclick="deleteWallet('${w.id}')">Delete</button>` : ''}</td>
+      <td style="white-space:nowrap;">
+        ${isAdminUser ? `
+          <button class="btn secondary small" onclick="openEditWallet('${w.id}')">Edit</button>
+          <button class="btn amber small" onclick="repairWallet('${w.id}')">Repair</button>
+          <button class="btn danger small" onclick="deleteWallet('${w.id}')">Delete</button>
+        ` : ''}
+      </td>
     </tr>`;
   }).join('');
+}
+
+function repairWallet(id){
+  const w = wallets.find(w=>w.id===id);
+  const name = w ? w.name : 'Unknown Wallet';
+  if(!confirm(`Fully reset "${name}"? This rewrites the wallet record keeping only the name — all balance adjustments will be cleared and it will recalculate from transactions only.`)) return;
+  // Completely overwrite the record with only the name — wipes any corrupt fields
+  db.ref('wallets/'+id).set({name}).then(()=>{
+    logAudit('Repair Wallet', name);
+    alert(`"${name}" has been repaired.`);
+  }).catch(err=> alert('Repair failed: ' + err.message));
 }
 
 // ---------- wallet picker modal ----------
@@ -1792,9 +1839,14 @@ function computeTotals(periodId){
 
 function computePlayerOutstanding(playerId){
   let unpaidDeposits=0, unpaidWithdrawNet=0;
-  txns.filter(t=>t.playerId===playerId && !t.paid).forEach(t=>{
+  txns.filter(t=>t.playerId===playerId && !t.paid && t.type!=='settlement').forEach(t=>{
     if(t.type==='deposit') unpaidDeposits += t.amount;
-    else unpaidWithdrawNet += t.amount - (t.amount*t.feePercent/100);
+    else unpaidWithdrawNet += t.amount - (t.amount*(t.feePercent||0)/100);
+  });
+  // Deduct partial settlements from the relevant side
+  txns.filter(t=>t.playerId===playerId && t.type==='settlement').forEach(t=>{
+    if(t.direction==='in') unpaidDeposits -= t.amount;  // player paid us → reduces their debt
+    else unpaidWithdrawNet -= t.amount;                 // we paid player → reduces our debt
   });
   return unpaidWithdrawNet - unpaidDeposits;
 }
@@ -1942,6 +1994,7 @@ function fallbackCopy(text, cb){
 function showPlayerDetail(playerId){
   const player = players.find(p=>p.id===playerId);
   if(!player) return;
+  currentDetailPlayerId = playerId;
   const out = computePlayerOutstanding(playerId);
   document.getElementById('pd-name').textContent = player.name;
 
@@ -1951,6 +2004,16 @@ function showPlayerDetail(playerId){
   else { statusText='Owes you'; statusClass='green'; }
   document.getElementById('pd-kpi').className = 'kpi ' + statusClass;
   document.getElementById('pd-amount').textContent = fmt(Math.abs(out));
+
+  // Show settlement button only when there's an outstanding balance
+  const settleBtn = document.getElementById('pd-settle-btn');
+  settleBtn.style.display = Math.abs(out)>0.005 ? 'inline-flex' : 'none';
+  settleBtn.textContent = out<0 ? `Partial Settlement (owes ${fmt(-out)})` : `Partial Settlement (you owe ${fmt(out)})`;
+
+  // Pre-fill hint in the settlement form
+  document.getElementById('pd-settlement-hint').textContent = out<0
+    ? `${player.name} owes you ${fmt(-out)}. Enter how much they're paying now.`
+    : `You owe ${player.name} ${fmt(out)}. Enter how much you're paying now.`;
   document.getElementById('pd-status').textContent = statusText;
 
   const history = txns.filter(t=>t.playerId===playerId && t.periodId===currentPeriod.id).sort((a,b)=> b.date.localeCompare(a.date));
@@ -1962,7 +2025,7 @@ function showPlayerDetail(playerId){
 
   // Current period totals
   let totalDeposit = 0, totalWithdrawNet = 0;
-  history.forEach(t=>{
+  history.filter(t=>t.type!=='settlement').forEach(t=>{
     if(t.type==='deposit') totalDeposit += t.amount;
     else totalWithdrawNet += t.amount - (t.amount*(t.feePercent||0)/100);
   });
@@ -1979,7 +2042,18 @@ function showPlayerDetail(playerId){
     totalsEl.style.display = 'none';
   }
   document.getElementById('pd-history').innerHTML = history.map(t=>{
-    const feeAmt = t.type==='withdraw' ? t.amount*t.feePercent/100 : 0;
+    if(t.type==='settlement'){
+      return `<tr style="background:rgba(224,168,58,.05);">
+        <td class="num">${t.date}</td>
+        <td><span class="tag" style="background:rgba(224,168,58,.15); color:var(--amber);">Settlement</span></td>
+        <td class="right num amt-amber">${t.direction==='in' ? '+' : '−'}${fmt(t.amount)}</td>
+        <td>
+          <span class="badge paid">Paid</span>
+          ${isAdminUser ? `<button class="btn danger small" style="margin-left:6px;" onclick="revertSettlement('${t.id}','${playerId}')">Revert</button>` : ''}
+        </td>
+      </tr>`;
+    }
+    const feeAmt = t.type==='withdraw' ? t.amount*(t.feePercent||0)/100 : 0;
     const net = t.type==='withdraw' ? t.amount-feeAmt : t.amount;
     return `<tr>
       <td class="num">${t.date}</td>
@@ -1993,6 +2067,64 @@ function showPlayerDetail(playerId){
 }
 function closePlayerDetail(){
   document.getElementById('player-detail-overlay').style.display = 'none';
+  document.getElementById('pd-settlement-section').style.display = 'none';
+  currentDetailPlayerId = null;
+}
+
+let currentDetailPlayerId = null;
+
+function toggleSettlementForm(){
+  const sec = document.getElementById('pd-settlement-section');
+  const isOpen = sec.style.display !== 'none';
+  sec.style.display = isOpen ? 'none' : 'block';
+  if(!isOpen){
+    const out = computePlayerOutstanding(currentDetailPlayerId);
+    document.getElementById('pd-settlement-amount').value = Math.abs(out).toFixed(2);
+    document.getElementById('pd-settlement-amount').focus();
+  }
+}
+
+function revertSettlement(txnId, playerId){
+  if(!isAdminUser){ alert('Only an admin can revert settlements.'); return; }
+  const t = txns.find(t=>t.id===txnId);
+  if(!t) return;
+  if(!confirm(`Revert this ${fmt(t.amount)} settlement? The outstanding balance will be restored.`)) return;
+  const pName = players.find(p=>p.id===playerId)?.name || playerId;
+  db.ref('transactions/'+txnId).remove().then(()=>{
+    logAudit('Revert Settlement', `${fmt(t.amount)} for ${pName}`);
+    showPlayerDetail(playerId); // refresh modal
+  });
+}
+
+async function recordSettlement(){
+  if(!currentDetailPlayerId) return;
+  const amount = parseFloat(document.getElementById('pd-settlement-amount').value);
+  if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
+  const out = computePlayerOutstanding(currentDetailPlayerId);
+  if(Math.abs(out)<0.005){ alert('This player is already settled.'); return; }
+
+  const direction = out < 0 ? 'in' : 'out'; // out<0 means player owes us → they're paying in
+  const walletPrompt = direction==='in' ? 'Which wallet did you receive this into?' : 'Which wallet did you pay this from?';
+  const walletId = await openWalletPicker(walletPrompt);
+
+  const pName = players.find(p=>p.id===currentDetailPlayerId)?.name || currentDetailPlayerId;
+  const record = {
+    playerId: currentDetailPlayerId,
+    type: 'settlement',
+    direction,
+    amount,
+    paid: true,
+    date: todayStr(),
+    periodId: currentPeriod.id,
+    note: 'Partial settlement'
+  };
+  if(walletId) record.walletId = walletId;
+
+  db.ref('transactions').push(record).then(()=>{
+    logAudit('Partial Settlement', `${fmt(amount)} for ${pName} (${direction==='in'?'received from':'paid to'} player)`);
+    document.getElementById('pd-settlement-section').style.display = 'none';
+    showPlayerDetail(currentDetailPlayerId); // refresh the modal
+  });
 }
 
 // ---------- init ----------
