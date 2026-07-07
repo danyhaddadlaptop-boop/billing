@@ -1792,8 +1792,23 @@ function renderArchive(){
     <tr>
       <td>${escapeHtml(p.label)}</td>
       <td class="num">${p.closedDate}</td>
-      <td class="right num amt-pos">${fmt(p.commission)}</td>
-      <td><span class="details-link" onclick="toggleArchiveDetails('${p.id}')">details</span></td>
+      <td class="right num amt-pos" id="arch-comm-display-${p.id}">${fmt(p.commission)}</td>
+      <td>
+        ${isAdminUser ? `<button class="btn secondary small" onclick="editArchiveCommission('${p.id}')">Edit commission</button>` : ''}
+        <span class="details-link" style="margin-left:8px;" onclick="toggleArchiveDetails('${p.id}')">details</span>
+      </td>
+    </tr>
+    <tr id="archive-comm-edit-${p.id}" style="display:none;">
+      <td colspan="4">
+        <div style="background:var(--panel-light); border-radius:6px; padding:12px 14px; display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+          <div class="field" style="flex:1; min-width:140px;">
+            <label>Commission received</label>
+            <input type="number" id="arch-comm-input-${p.id}" step="0.01" value="${p.commission||0}" style="width:100%;">
+          </div>
+          <button class="btn small" onclick="saveArchiveCommission('${p.id}')">Save</button>
+          <button class="btn secondary small" onclick="document.getElementById('archive-comm-edit-${p.id}').style.display='none'">Cancel</button>
+        </div>
+      </td>
     </tr>
     <tr id="archive-details-${p.id}" style="display:none;">
       <td colspan="4">
@@ -1806,6 +1821,27 @@ function renderArchive(){
     </tr>
   `).join('');
 }
+
+function editArchiveCommission(periodId){
+  // Hide any other open edit rows first
+  document.querySelectorAll('[id^="archive-comm-edit-"]').forEach(el=>{
+    if(el.id !== 'archive-comm-edit-'+periodId) el.style.display='none';
+  });
+  const row = document.getElementById('archive-comm-edit-'+periodId);
+  row.style.display = row.style.display==='none' ? 'table-row' : 'none';
+  if(row.style.display==='table-row'){
+    setTimeout(()=>document.getElementById('arch-comm-input-'+periodId).focus(), 50);
+  }
+}
+
+function saveArchiveCommission(periodId){
+  const val = parseFloat(document.getElementById('arch-comm-input-'+periodId).value)||0;
+  db.ref('archivedPeriods/'+periodId+'/commission').set(val).then(()=>{
+    logAudit('Edit Archive Commission', `Period ${periodId} → ${fmt(val)}`);
+    document.getElementById('archive-comm-edit-'+periodId).style.display='none';
+  });
+}
+
 function toggleArchiveDetails(periodId){
   const row = document.getElementById('archive-details-'+periodId);
   row.style.display = row.style.display==='none' ? 'table-row' : 'none';
