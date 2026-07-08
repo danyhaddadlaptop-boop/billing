@@ -1850,9 +1850,9 @@ function toggleArchiveDetails(periodId){
 // ---------- calculations ----------
 function computeTotals(periodId){
   let playerDeposits=0, playerWithdrawGross=0, playerWithdrawFees=0;
-  txns.filter(t=>t.periodId===periodId).forEach(t=>{
+  txns.filter(t=>t.periodId===periodId && t.type!=='settlement').forEach(t=>{
     if(t.type==='deposit') playerDeposits += t.amount;
-    else { playerWithdrawGross += t.amount; playerWithdrawFees += t.amount*t.feePercent/100; }
+    else { playerWithdrawGross += t.amount; playerWithdrawFees += t.amount*(t.feePercent||0)/100; }
   });
   const playerWithdrawNet = playerWithdrawGross - playerWithdrawFees;
 
