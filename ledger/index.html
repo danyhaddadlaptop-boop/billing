@@ -1867,7 +1867,7 @@ function computeTotals(periodId){
   const openingAdj = isCurrent ? (currentPeriod.openingAdjustment||0) : 0;
   const openingGainLoss = isCurrent ? (currentPeriod.openingGainLoss||0) : 0;
 
-  const agentBalance = openingAdj - playerDeposits + playerWithdrawNet + saDeposits - saWithdrawals;
+  const agentBalance = openingAdj - playerDeposits + playerWithdrawGross + saDeposits - saWithdrawals;
   const gainLoss = openingGainLoss + saDeposits - saWithdrawals;
   const commission = gainLoss>0 ? gainLoss*settings.commissionPercent/100 : 0;
 
