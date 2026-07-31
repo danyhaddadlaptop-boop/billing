@@ -520,6 +520,12 @@
       <div class="kpi" id="kpi-commission"><div class="label">Commission Earned</div><div class="value num" id="val-commission">$0.00</div><div class="sub">% on played-money gain only</div></div>
       <div class="kpi" id="kpi-fees"><div class="label">Fees Collected</div><div class="value num" id="val-fees">$0.00</div><div class="sub">% on player withdrawals</div></div>
     </div>
+    <div class="kpi-grid" id="poker-kpi-grid" style="display:none;">
+      <div class="kpi blue"><div class="label">🃏 Poker Deposits</div><div class="value num" id="val-poker-deposits">$0.00</div><div class="sub">Buy-ins this period</div></div>
+      <div class="kpi red"><div class="label">🃏 Poker Withdrawals</div><div class="value num" id="val-poker-withdrawals">$0.00</div><div class="sub">Cash-outs this period</div></div>
+      <div class="kpi" id="kpi-poker-net"><div class="label">🃏 Poker Net</div><div class="value num" id="val-poker-net">$0.00</div><div class="sub">No commission applied</div></div>
+      <div class="kpi amber"><div class="label">🃏 Poker Fees Collected</div><div class="value num" id="val-poker-fees">$0.00</div><div class="sub">% on poker withdrawals</div></div>
+    </div>
 
     <div class="panel">
       <div class="topline">
@@ -604,6 +610,12 @@
           <input type="hidden" id="txn-player-id">
           <div id="txn-player-suggestions" class="autocomplete-list" style="display:none;"></div>
         </div>
+        <div class="field"><label>Game</label>
+          <select id="txn-game">
+            <option value="casino">&#127902;&#65039; Casino</option>
+            <option value="poker">&#127137; Poker</option>
+          </select>
+        </div>
         <div class="field"><label>Type</label>
           <select id="txn-type" onchange="onTxnTypeChange()">
             <option value="deposit">Deposit (player pays in)</option>
@@ -633,7 +645,7 @@
         <button class="btn secondary small" onclick="clearTxnArchive()">Show all</button>
       </div>
       <div class="table-scroll"><table>
-        <thead><tr><th>Date</th><th>Player</th><th>Period</th><th>Type</th><th class="right">Amount</th><th class="right">Fee</th><th class="right">Net</th><th>Agent</th><th>Status</th><th>Wallet</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Player</th><th>Period</th><th>Game</th><th>Type</th><th class="right">Amount</th><th class="right">Fee</th><th class="right">Net</th><th>Agent</th><th>Status</th><th>Wallet</th><th></th></tr></thead>
         <tbody id="tbl-transactions"></tbody>
       </table></div>
       <div class="empty" id="empty-txns" style="display:none;">No transactions logged yet.</div>
@@ -1284,7 +1296,8 @@ async function addTxn(){
   const fee = type==='withdraw' ? (parseFloat(document.getElementById('txn-fee').value)||0) : 0;
   let paid = isAdminUser ? document.getElementById('txn-paid').checked : false;
   const date = document.getElementById('txn-date').value || todayStr();
-  const record = {playerId, type, amount, feePercent: fee, paid, date, periodId: currentPeriod.id};
+  const game = document.getElementById('txn-game').value || 'casino';
+  const record = {playerId, game, type, amount, feePercent: fee, paid, date, periodId: currentPeriod.id};
 
   // Ask which agent this transaction is under
   const agent = await openAgentPicker();
@@ -1353,6 +1366,7 @@ function renderTransactions(){
       <td class="num">${t.date}</td>
       <td>${player ? escapeHtml(player.name) : '—'}${t.note ? ' <span style="color:var(--text-dim); font-size:11px;">('+escapeHtml(t.note)+')</span>' : ''}</td>
       <td style="font-size:11.5px; color:var(--text-dim);">${escapeHtml(periodLabelById(t.periodId))}</td>
+      <td>${t.game==="poker" ? '<span style="background:rgba(155,114,230,.15);color:#b898f0;font-size:11px;padding:2px 7px;border-radius:4px;font-weight:600;">🃏 Poker</span>' : '<span style="background:rgba(224,168,58,.12);color:var(--amber);font-size:11px;padding:2px 7px;border-radius:4px;font-weight:600;">🎰 Casino</span>'}</td>
       <td><span class="tag ${t.type==='deposit'?'dep':'wd'}">${t.type==='deposit'?'Deposit':'Withdraw'}</span></td>
       <td class="right num">${fmt(t.amount)}</td>
       <td class="right num">${t.type==='withdraw' ? fmt(feeAmt)+' ('+t.feePercent+'%)' : '—'}</td>
@@ -1421,6 +1435,7 @@ function renderSa(){
     <tr>
       <td class="num">${t.date}</td>
       <td style="font-size:11.5px; color:var(--text-dim);">${escapeHtml(periodLabelById(t.periodId))}</td>
+      <td>${t.game==="poker" ? '<span style="background:rgba(155,114,230,.15);color:#b898f0;font-size:11px;padding:2px 7px;border-radius:4px;font-weight:600;">🃏 Poker</span>' : '<span style="background:rgba(224,168,58,.12);color:var(--amber);font-size:11px;padding:2px 7px;border-radius:4px;font-weight:600;">🎰 Casino</span>'}</td>
       <td><span class="tag ${t.type==='deposit'?'dep':'wd'}">${t.type==='deposit'?'Deposit to SA':'Withdraw from SA'}</span></td>
       <td class="right num">${fmt(t.amount)}</td>
       <td>${isAdminUser ? `<span class="badge ${t.paid?'paid':'notpaid'}" onclick="toggleSaPaid('${t.id}')">${t.paid?'Paid':'Not Paid'}</span>` : `<span class="badge ${t.paid?'paid':'notpaid'}" style="cursor:default;">${t.paid?'Paid':'Not Paid'}</span>`}</td>
@@ -1851,9 +1866,17 @@ function toggleArchiveDetails(periodId){
 // ---------- calculations ----------
 function computeTotals(periodId){
   let playerDeposits=0, playerWithdrawGross=0, playerWithdrawFees=0;
+  let pokerDeposits=0, pokerWithdrawGross=0, pokerFees=0;
   txns.filter(t=>t.periodId===periodId && t.type!=='settlement').forEach(t=>{
-    if(t.type==='deposit') playerDeposits += t.amount;
-    else { playerWithdrawGross += t.amount; playerWithdrawFees += t.amount*(t.feePercent||0)/100; }
+    const isPoker = t.game === 'poker';
+    if(t.type==='deposit'){
+      playerDeposits += t.amount;
+      if(isPoker) pokerDeposits += t.amount;
+    } else {
+      const fee = t.amount*(t.feePercent||0)/100;
+      playerWithdrawGross += t.amount; playerWithdrawFees += fee;
+      if(isPoker){ pokerWithdrawGross += t.amount; pokerFees += fee; }
+    }
   });
   const playerWithdrawNet = playerWithdrawGross - playerWithdrawFees;
 
@@ -1871,7 +1894,7 @@ function computeTotals(periodId){
   const gainLoss = openingGainLoss + saDeposits - saWithdrawals;
   const commission = gainLoss>0 ? gainLoss*settings.commissionPercent/100 : 0;
 
-  return {playerDeposits, playerWithdrawGross, playerWithdrawNet, playerWithdrawFees, saDeposits, saWithdrawals, agentBalance, gainLoss, commission};
+  return {playerDeposits, playerWithdrawGross, playerWithdrawNet, playerWithdrawFees, saDeposits, saWithdrawals, agentBalance, gainLoss, commission, pokerDeposits, pokerWithdrawGross, pokerFees};
 }
 
 function computePlayerOutstanding(playerId){
@@ -1922,6 +1945,18 @@ function renderDashboard(){
   document.getElementById('kpi-gainloss').className = 'kpi ' + (tot.gainLoss>=0?'green':'red');
   document.getElementById('kpi-commission').className = 'kpi blue';
   document.getElementById('kpi-fees').className = 'kpi amber';
+
+  // Poker KPIs
+  const hasPoker = tot.pokerDeposits > 0 || tot.pokerWithdrawGross > 0;
+  document.getElementById('poker-kpi-grid').style.display = hasPoker ? 'grid' : 'none';
+  if(hasPoker){
+    const pokerNet = tot.pokerDeposits - tot.pokerWithdrawGross;
+    document.getElementById('val-poker-deposits').textContent = fmt(tot.pokerDeposits);
+    document.getElementById('val-poker-withdrawals').textContent = fmt(tot.pokerWithdrawGross);
+    document.getElementById('val-poker-net').textContent = fmt(pokerNet);
+    document.getElementById('kpi-poker-net').className = 'kpi ' + (pokerNet>=0?'green':'red');
+    document.getElementById('val-poker-fees').textContent = fmt(tot.pokerFees);
+  }
 
   const saTotals = computeSaAllTimeTotals();
   document.getElementById('val-sa-unpaid').textContent = fmt(saTotals.unpaidAmount);
@@ -2092,9 +2127,12 @@ function showPlayerDetail(playerId){
     }
     const feeAmt = t.type==='withdraw' ? t.amount*(t.feePercent||0)/100 : 0;
     const net = t.type==='withdraw' ? t.amount-feeAmt : t.amount;
+    const gameChip = t.game==='poker'
+      ? `<span style="background:rgba(155,114,230,.15);color:#b898f0;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:4px;">🃏</span>`
+      : `<span style="background:rgba(224,168,58,.12);color:var(--amber);font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:4px;">🎰</span>`;
     return `<tr>
       <td class="num">${t.date}</td>
-      <td><span class="tag ${t.type==='deposit'?'dep':'wd'}">${t.type==='deposit'?'Deposit':'Withdraw'}</span></td>
+      <td><span class="tag ${t.type==='deposit'?'dep':'wd'}">${t.type==='deposit'?'Deposit':'Withdraw'}</span>${gameChip}</td>
       <td class="right num">${fmt(net)}</td>
       <td>${isAdminUser ? `<span class="badge ${t.paid?'paid':'notpaid'}" onclick="togglePaid('${t.id}').then(()=>showPlayerDetail('${playerId}'))">${t.paid?'Paid':'Not Paid'}</span>` : `<span class="badge ${t.paid?'paid':'notpaid'}" style="cursor:default;">${t.paid?'Paid':'Not Paid'}</span>`}</td>
     </tr>`;
